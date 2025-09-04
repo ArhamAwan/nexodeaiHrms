@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { POST } from "./route";
 import bcrypt from "bcryptjs";
 
-vi.mock("@/generated/prisma", () => {
+vi.mock("@prisma/client", () => {
 	class PrismaClient {
 		user = {
 			findUnique: vi.fn(),
@@ -16,7 +16,7 @@ vi.mock("next/headers", () => ({
 	cookies: async () => ({ set: vi.fn() }),
 }));
 
-const { PrismaClient } = await import("@/generated/prisma");
+const { PrismaClient } = await import("@prisma/client");
 
 describe("auth login route", () => {
 	beforeEach(() => {
