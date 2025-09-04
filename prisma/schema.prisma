@@ -1,0 +1,205 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Phase 1: Core entities
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  password  String
+  role      Role
+  status    UserStatus @default(ACTIVE)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  employee  Employee?
+  notifications Notification[]
+
+  @@index([email])
+}
+
+model Department {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  head      Employee? @relation("DepartmentHead", fields: [headId], references: [id])
+  headId    String?   @unique
+  employees Employee[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Employee {
+  id                 String      @id @default(cuid())
+  user               User        @relation(fields: [userId], references: [id])
+  userId             String      @unique
+  department         Department? @relation(fields: [departmentId], references: [id])
+  departmentId       String?
+  manager            Employee?   @relation("ManagerToReports", fields: [managerId], references: [id])
+  managerId          String?
+  reports            Employee[]  @relation("ManagerToReports")
+  headedDepartment   Department? @relation("DepartmentHead")
+
+  firstName          String
+  lastName           String
+  phone              String?
+  address            String?
+  designation        String?
+  joinedAt           DateTime    @default(now())
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  // Phase 2 relations
+  attendances        Attendance[]
+  timeLogs           TimeLog[]
+
+  // Phase 3 relations
+  workReports        Report[]
+  leaves             Leave[]
+  approvals          Leave[]     @relation("LeaveApprover")
+
+  @@index([departmentId])
+  @@index([managerId])
+}
+
+enum Role {
+  ADMIN
+  HR
+  EMPLOYEE
+  MANAGER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+// Phase 2: Attendance and Time Tracking
+model Attendance {
+  id          String   @id @default(cuid())
+  employee    Employee @relation(fields: [employeeId], references: [id])
+  employeeId  String
+  day         DateTime @db.Date
+  checkIn     DateTime?
+  checkOut    DateTime?
+  status      AttendanceStatus @default(PRESENT)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([employeeId, day])
+  @@index([employeeId, day])
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  ON_LEAVE
+}
+
+model TimeLog {
+  id             String   @id @default(cuid())
+  employee       Employee @relation(fields: [employeeId], references: [id])
+  employeeId     String
+  startTime      DateTime
+  endTime        DateTime?
+  durationSec    Int?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([employeeId, startTime])
+}
+
+// Phase 3: Reports and Leaves
+model Report {
+  id             String      @id @default(cuid())
+  employee       Employee    @relation(fields: [employeeId], references: [id])
+  employeeId     String
+  type           ReportType
+  content        String
+  submissionDate DateTime    @default(now())
+  status         ReportStatus @default(SUBMITTED)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([employeeId, submissionDate])
+}
+
+enum ReportType {
+  DAILY
+  WEEKLY
+  MONTHLY
+  PROJECT
+  CUSTOM
+}
+
+enum ReportStatus {
+  SUBMITTED
+  REVIEWING
+  APPROVED
+  REJECTED
+}
+
+model Leave {
+  id           String      @id @default(cuid())
+  employee     Employee    @relation(fields: [employeeId], references: [id])
+  employeeId   String
+  type         LeaveType
+  fromDate     DateTime    @db.Date
+  toDate       DateTime    @db.Date
+  status       LeaveStatus @default(PENDING)
+  approver     Employee?   @relation("LeaveApprover", fields: [approverId], references: [id])
+  approverId   String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([employeeId, fromDate])
+  @@index([status])
+}
+
+enum LeaveType {
+  SICK
+  CASUAL
+  ANNUAL
+  UNPAID
+  COMP_OFF
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// Notifications
+model Notification {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, read])
+}
+
+// Holidays
+model Holiday {
+  id        String   @id @default(cuid())
+  name      String
+  date      DateTime @db.Date
+  createdAt DateTime @default(now())
+
+  @@unique([date])
+}
