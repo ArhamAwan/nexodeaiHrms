@@ -1,4 +1,4 @@
-import { PrismaClient } from "@/generated/prisma";
+import { PrismaClient } from "@prisma/client";
 import { cookies } from "next/headers";
 import { verifyRefreshToken } from "@/lib/auth";
 

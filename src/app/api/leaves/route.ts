@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@/generated/prisma";
+import { PrismaClient } from "@prisma/client";
 import { z } from "zod";
 import { notifyManagersOfEmployee, notifyUser } from "@/lib/notify";
 import { getCurrentUserWithEmployee } from "@/lib/api-auth";
