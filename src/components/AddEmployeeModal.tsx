@@ -35,18 +35,19 @@ export default function AddEmployeeModal({ isOpen, onClose, onCreated }: AddEmpl
       if (res.ok) {
         const result = await res.json();
         if (result.tempPassword) {
-          alert(`Employee created successfully!\n\nTemporary password: ${result.tempPassword}\n\nPlease share this with the employee and ask them to change it on first login.`);
+          alert(`✅ Employee created successfully!\n\n📧 Email: ${data.email}\n🔑 Temporary Password: ${result.tempPassword}\n\n⚠️ Please share this password with the employee and ask them to change it on first login.`);
         } else {
-          alert("Employee created successfully!");
+          alert(`✅ Employee created successfully!\n\n📧 Email: ${data.email}`);
         }
         onCreated();
         onClose();
       } else {
         const d = await res.json().catch(() => ({}));
-        alert(`Failed to create employee: ${d.error || "Unknown error"}`);
+        alert(`❌ Failed to create employee: ${d.error || "Unknown error"}`);
       }
     } catch (error) {
       console.error("Error creating employee:", error);
+      alert(`❌ Error creating employee: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
