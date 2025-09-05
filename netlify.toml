@@ -1,0 +1,13 @@
+[build]
+  command = "cd web && pnpm install && pnpm build"
+  publish = "web/.next"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[build.environment]
+  NODE_VERSION = "18"
+  NPM_FLAGS = "--version"
+
+[functions]
+  node_bundler = "esbuild"
