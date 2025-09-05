@@ -38,6 +38,17 @@ export async function deduplicatedFetch<T>(url: string, options?: RequestInit): 
   
   // Make new request
   const promise = fetch(url, options).then(async (res) => {
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`HTTP ${res.status}: ${errorText}`);
+    }
+    
+    const contentType = res.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await res.text();
+      throw new Error(`Expected JSON response, got: ${text}`);
+    }
+    
     const data = await res.json();
     setCachedData(key, data, 30000); // 30 second cache
     pendingRequests.delete(key);

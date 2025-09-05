@@ -8,9 +8,22 @@ export function NotificationBell() {
 	const [open, setOpen] = useState(false);
 
 	async function load() {
-		const res = await fetch("/api/notifications");
-		const data = await res.json();
-		setItems(data.notifications ?? []);
+		try {
+			const res = await fetch("/api/notifications", { credentials: "include" });
+			if (!res.ok) {
+				if (res.status === 401) {
+					// User not authenticated, clear notifications
+					setItems([]);
+					return;
+				}
+				throw new Error(`HTTP ${res.status}`);
+			}
+			const data = await res.json();
+			setItems(data.notifications ?? []);
+		} catch (error) {
+			console.error("Failed to load notifications:", error);
+			setItems([]);
+		}
 	}
 
 	useEffect(() => {
@@ -22,8 +35,17 @@ export function NotificationBell() {
 	async function markAll() {
 		const unread = items.filter((i) => !i.read).map((i) => i.id);
 		if (unread.length === 0) return;
-		await fetch("/api/notifications", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids: unread }) });
-		load();
+		try {
+			await fetch("/api/notifications", { 
+				method: "PATCH", 
+				headers: { "Content-Type": "application/json" }, 
+				body: JSON.stringify({ ids: unread }),
+				credentials: "include"
+			});
+			load();
+		} catch (error) {
+			console.error("Failed to mark notifications as read:", error);
+		}
 	}
 
 	const unreadCount = items.filter((i) => !i.read).length;

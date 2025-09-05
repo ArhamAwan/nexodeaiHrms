@@ -7,6 +7,7 @@ import { onPresence } from "@/lib/realtime";
 import { useAppSelector } from "@/store";
 import { toast } from "sonner";
 import { deduplicatedFetch } from "@/lib/cache";
+import AddEmployeeModal from "@/components/AddEmployeeModal";
 
 const PAGE_SIZE = 10;
 
@@ -93,61 +94,8 @@ export default function EmployeesClient() {
         </TableRow>
     );
 
-    async function addEmployee(e: React.FormEvent<HTMLFormElement>) {
-        e.preventDefault();
-        const form = e.currentTarget as any;
-        const payload = {
-            email: form.email.value,
-            firstName: form.firstName.value,
-            lastName: form.lastName.value,
-            role: form.role.value,
-        };
-        const res = await fetch("/api/employees", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-        if (res.ok) {
-            const { tempPassword } = await res.json();
-            toast.success(`Employee created. Temp password: ${tempPassword}`);
-            form.reset();
-            await load();
-        } else {
-            const d = await res.json().catch(() => ({}));
-            toast.error(d.error || "Failed to create employee");
-        }
-    }
 
-    function AddEmployeeModal({ onCreated }: { onCreated: () => Promise<void> }) {
-        const [open, setOpen] = useState(false);
-        return (
-            <div className="bg-card rounded-2xl border premium-shadow p-4">
-                <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-foreground">Add Employee</h3>
-                    <button onClick={() => setOpen(true)} className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-blue-500 to-purple-600 text-white">Open</button>
-                </div>
-                {open && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center">
-                        <div className="absolute inset-0 bg-black/50" onClick={() => setOpen(false)} />
-                        <div className="relative bg-card text-foreground w-full max-w-lg rounded-2xl border p-6 anim-scale-in" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center justify-between mb-4">
-                                <h4 className="font-semibold">New Employee</h4>
-                                <button onClick={() => setOpen(false)} className="px-2 py-1 rounded bg-muted">Esc</button>
-                            </div>
-                            <form onSubmit={async (e) => { await addEmployee(e); setOpen(false); onCreated(); }} className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <input name="firstName" placeholder="First name" required className="px-3 py-2 rounded-xl bg-muted text-foreground placeholder:text-muted-foreground border border-border focus:bg-card focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                                <input name="lastName" placeholder="Last name" required className="px-3 py-2 rounded-xl bg-muted text-foreground placeholder:text-muted-foreground border border-border focus:bg-card focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                                <input name="email" type="email" placeholder="Email" required className="px-3 py-2 rounded-xl bg-muted text-foreground placeholder:text-muted-foreground border border-border focus:bg-card focus:outline-none focus:ring-2 focus:ring-blue-500 md:col-span-2" />
-                                <select name="role" className="px-3 py-2 rounded-xl bg-muted text-foreground border border-border focus:bg-card focus:outline-none focus:ring-2 focus:ring-blue-500 md:col-span-2">
-                                    <option value="EMPLOYEE">Employee</option>
-                                    <option value="HR">HR</option>
-                                    <option value="MANAGER">Manager</option>
-                                    <option value="ADMIN">Admin</option>
-                                </select>
-                                <button type="submit" className="mt-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white md:col-span-2">Create</button>
-                            </form>
-                        </div>
-                    </div>
-                )}
-            </div>
-        );
-    }
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
     return (
         <div className="space-y-6">
@@ -166,7 +114,17 @@ export default function EmployeesClient() {
             </div>
 
             {(user?.role === "ADMIN" || user?.role === "HR") && (
-                <AddEmployeeModal onCreated={async () => { await load(); }} />
+                <div className="bg-card rounded-2xl border premium-shadow p-4">
+                    <div className="flex items-center justify-between">
+                        <h3 className="font-semibold text-foreground">Add Employee</h3>
+                        <button 
+                            onClick={() => setIsAddModalOpen(true)}
+                            className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 transition-colors"
+                        >
+                            Open
+                        </button>
+                    </div>
+                </div>
             )}
 
             <div className="bg-card rounded-2xl border premium-shadow overflow-hidden">
@@ -228,6 +186,12 @@ export default function EmployeesClient() {
                     <button disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))} className="px-3 py-1.5 rounded-lg bg-muted text-foreground disabled:opacity-50">Next</button>
                 </div>
             </div>
+            
+            <AddEmployeeModal 
+                isOpen={isAddModalOpen}
+                onClose={() => setIsAddModalOpen(false)}
+                onCreated={load}
+            />
         </div>
     );
 }

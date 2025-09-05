@@ -20,38 +20,43 @@ const createSchema = z.object({
 });
 
 export async function GET() {
-	const employees = await prisma.employee.findMany({
-		select: {
-			id: true,
-			firstName: true,
-			lastName: true,
-			phone: true,
-			address: true,
-			designation: true,
-			joinedAt: true,
-			createdAt: true,
-			updatedAt: true,
-			user: { 
-				select: { 
-					id: true, 
-					email: true, 
-					role: true,
-					status: true
-				} 
-			}, 
-			department: { 
-				select: { 
-					id: true,
-					name: true 
-				} 
-			}
-		},
-		orderBy: { createdAt: "desc" },
-	});
-	
-	const response = NextResponse.json({ employees });
-	response.headers.set('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=600');
-	return response;
+	try {
+		const employees = await prisma.employee.findMany({
+			select: {
+				id: true,
+				firstName: true,
+				lastName: true,
+				phone: true,
+				address: true,
+				designation: true,
+				joinedAt: true,
+				createdAt: true,
+				updatedAt: true,
+				user: { 
+					select: { 
+						id: true, 
+						email: true, 
+						role: true,
+						status: true
+					} 
+				}, 
+				department: { 
+					select: { 
+						id: true,
+						name: true 
+					} 
+				}
+			},
+			orderBy: { createdAt: "desc" },
+		});
+		
+		const response = NextResponse.json({ employees });
+		response.headers.set('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=600');
+		return response;
+	} catch (error) {
+		console.error("/api/employees GET error", error);
+		return NextResponse.json({ error: "Failed to fetch employees" }, { status: 500 });
+	}
 }
 
 export async function POST(req: NextRequest) {
