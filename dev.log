@@ -80,3 +80,39 @@
  GET /api/notifications 200 in 797ms
  GET /api/employees/activity 200 in 356ms
  GET /api/notifications 200 in 561ms
+ GET /api/employees/activity 200 in 510ms
+ GET /api/notifications 200 in 789ms
+ GET /api/employees/activity 200 in 363ms
+ GET /api/notifications 200 in 572ms
+ GET /api/employees/activity 200 in 464ms
+ GET /api/notifications 200 in 763ms
+ GET /api/employees/activity 200 in 362ms
+ GET /api/notifications 200 in 565ms
+ GET /api/employees/activity 200 in 455ms
+ GET /api/notifications 200 in 764ms
+ GET /api/employees/activity 200 in 1355ms
+ GET /api/notifications 200 in 2622ms
+ GET /api/employees/activity 200 in 377ms
+ GET /api/notifications 200 in 572ms
+ GET /api/employees/activity 200 in 463ms
+ GET /api/notifications 200 in 769ms
+ GET /api/employees/activity 200 in 462ms
+ GET /api/notifications 200 in 771ms
+ GET /employees 200 in 110ms
+ GET /favicon.ico?favicon.0b3bf435.ico 200 in 299ms
+ GET /api/employees/activity 200 in 410ms
+ GET /api/notifications 200 in 614ms
+ GET /api/employees 200 in 1592ms
+ GET /api/auth/me 200 in 1612ms
+ GET /api/employees/activity 200 in 365ms
+ GET /api/notifications 200 in 573ms
+ GET /api/employees/activity 200 in 456ms
+ GET /api/notifications 200 in 758ms
+ GET /api/employees/activity 200 in 347ms
+ GET /api/notifications 200 in 551ms
+ GET /api/employees/activity 200 in 456ms
+ GET /api/notifications 200 in 762ms
+ GET /api/employees/activity 200 in 356ms
+ GET /api/notifications 200 in 563ms
+ GET /api/employees/activity 200 in 459ms
+ GET /api/notifications 200 in 758ms
