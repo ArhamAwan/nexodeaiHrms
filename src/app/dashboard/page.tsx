@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
-import { ResponsiveContainer, AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip, Legend } from "recharts";
 import { Play, Pause, Coffee, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
+import { deduplicatedFetch } from "@/lib/cache";
+import LazyChart from "@/components/LazyChart";
 
 export default function DashboardPage() {
 	const [stats, setStats] = useState<{ employees: number; departments: number; pendingLeaves: number; attendanceToday: number } | null>(null);
@@ -19,52 +20,31 @@ export default function DashboardPage() {
 	const [myLeaves, setMyLeaves] = useState<any[]>([]);
 	const [calendarDate, setCalendarDate] = useState<Date>(new Date());
 
-	async function loadAll() {
+	const loadAll = useCallback(async () => {
 		try {
-			const [statsRes, timeRes, analyticsRes, holidaysRes, leavesRes] = await Promise.all([
-				fetch("/api/dashboard/stats", { 
-					credentials: "include", 
-					next: { revalidate: 30 },
-					headers: { 'Cache-Control': 'max-age=30' }
-				}),
-				fetch("/api/time", { credentials: "include", cache: "no-store" }),
-				fetch("/api/analytics", { 
-					credentials: "include", 
-					next: { revalidate: 60 },
-					headers: { 'Cache-Control': 'max-age=60' }
-				}),
-				fetch("/api/holidays", { 
-					credentials: "include", 
-					next: { revalidate: 300 },
-					headers: { 'Cache-Control': 'max-age=300' }
-				}),
-				fetch("/api/leaves", { 
-					credentials: "include", 
-					next: { revalidate: 60 },
-					headers: { 'Cache-Control': 'max-age=60' }
-				}),
+			// Load critical data first
+			const [stats, time, analytics] = await Promise.all([
+				deduplicatedFetch("/api/dashboard/stats", { credentials: "include" }),
+				deduplicatedFetch("/api/time", { credentials: "include" }),
+				deduplicatedFetch("/api/analytics", { credentials: "include" })
 			]);
-			if (!statsRes.ok || !timeRes.ok || !analyticsRes.ok) {
-				throw new Error("Failed to load dashboard data");
-			}
-			const s = await statsRes.json();
-			const t = await timeRes.json();
-			const a = await analyticsRes.json();
-			setStats(s);
-			setTimer({ active: !!t.active, startTime: t.startTime ?? null });
-			setSeries(a.series ?? []);
-			if (holidaysRes.ok) {
-				const h = await holidaysRes.json();
-				setHolidays(h.holidays ?? []);
-			}
-			if (leavesRes.ok) {
-				const l = await leavesRes.json();
-				setMyLeaves(Array.isArray(l.leaves) ? l.leaves : []);
-			}
-		} finally {
+			
+			setStats(stats);
+			setTimer({ active: !!time.active, startTime: time.startTime ?? null });
+			setSeries(analytics.series ?? []);
+			setLoading(false);
+			
+			// Load non-critical data in background
+			Promise.all([
+				deduplicatedFetch("/api/holidays", { credentials: "include" }).then(h => setHolidays(h.holidays ?? [])).catch(() => {}),
+				deduplicatedFetch("/api/leaves", { credentials: "include" }).then(l => setMyLeaves(Array.isArray(l.leaves) ? l.leaves : [])).catch(() => {})
+			]);
+		} catch (error) {
+			console.error("Failed to load dashboard:", error);
+			toast.error("Failed to load dashboard data");
 			setLoading(false);
 		}
-	}
+	}, []);
 
 	useEffect(() => {
 		loadAll();
@@ -350,39 +330,7 @@ export default function DashboardPage() {
 						<option value="7d">Last 7 days</option>
 					</select>
 				</div>
-				<div className="h-72">
-					<ResponsiveContainer width="100%" height="100%">
-						<AreaChart data={filteredSeries} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
-							<defs>
-								<linearGradient id="fillHours" x1="0" y1="0" x2="0" y2="1">
-									<stop offset="5%" stopColor="#2563eb" stopOpacity={0.8} />
-									<stop offset="95%" stopColor="#2563eb" stopOpacity={0.1} />
-								</linearGradient>
-								<linearGradient id="fillPresent" x1="0" y1="0" x2="0" y2="1">
-									<stop offset="5%" stopColor="#16a34a" stopOpacity={0.8} />
-									<stop offset="95%" stopColor="#16a34a" stopOpacity={0.1} />
-								</linearGradient>
-							</defs>
-							<CartesianGrid vertical={false} strokeDasharray="3 3" />
-							<YAxis domain={[0, "auto"]} tickLine={false} axisLine={false} tickMargin={8} />
-							<XAxis
-								dataKey="date"
-								tickLine={false}
-								axisLine={false}
-								tickMargin={8}
-								minTickGap={32}
-								tickFormatter={(value: string) => {
-									const date = new Date(value);
-									return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-								}}
-							/>
-							<Tooltip labelFormatter={(value) => new Date(value as any).toLocaleDateString(undefined, { month: "short", day: "numeric" })} />
-							<Legend />
-							<Area dataKey="present" type="monotone" fill="url(#fillPresent)" stroke="#16a34a" name="Check-ins" stackId="a" />
-							<Area dataKey="hours" type="monotone" fill="url(#fillHours)" stroke="#2563eb" name="Hours" stackId="a" />
-						</AreaChart>
-					</ResponsiveContainer>
-				</div>
+				<LazyChart data={filteredSeries} timeRange={timeRange} />
 			</div>
 		</div>
 	);

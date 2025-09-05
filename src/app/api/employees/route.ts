@@ -21,12 +21,36 @@ const createSchema = z.object({
 
 export async function GET() {
 	const employees = await prisma.employee.findMany({
-		include: { user: { select: { id: true, email: true, role: true } }, department: { select: { name: true } } },
+		select: {
+			id: true,
+			firstName: true,
+			lastName: true,
+			phone: true,
+			address: true,
+			designation: true,
+			joinedAt: true,
+			createdAt: true,
+			updatedAt: true,
+			user: { 
+				select: { 
+					id: true, 
+					email: true, 
+					role: true,
+					status: true
+				} 
+			}, 
+			department: { 
+				select: { 
+					id: true,
+					name: true 
+				} 
+			}
+		},
 		orderBy: { createdAt: "desc" },
 	});
 	
 	const response = NextResponse.json({ employees });
-	response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+	response.headers.set('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=600');
 	return response;
 }
 

@@ -1,0 +1,52 @@
+// Simple in-memory cache for API responses
+const cache = new Map<string, { data: any; timestamp: number; ttl: number }>();
+
+export function getCachedData<T>(key: string): T | null {
+  const cached = cache.get(key);
+  if (!cached) return null;
+  
+  if (Date.now() - cached.timestamp > cached.ttl) {
+    cache.delete(key);
+    return null;
+  }
+  
+  return cached.data;
+}
+
+export function setCachedData<T>(key: string, data: T, ttl: number = 60000): void {
+  cache.set(key, {
+    data,
+    timestamp: Date.now(),
+    ttl
+  });
+}
+
+// Request deduplication
+const pendingRequests = new Map<string, Promise<any>>();
+
+export async function deduplicatedFetch<T>(url: string, options?: RequestInit): Promise<T> {
+  const key = `${url}-${JSON.stringify(options)}`;
+  
+  // Return cached data if available
+  const cached = getCachedData<T>(key);
+  if (cached) return cached;
+  
+  // Return pending request if exists
+  if (pendingRequests.has(key)) {
+    return pendingRequests.get(key)!;
+  }
+  
+  // Make new request
+  const promise = fetch(url, options).then(async (res) => {
+    const data = await res.json();
+    setCachedData(key, data, 30000); // 30 second cache
+    pendingRequests.delete(key);
+    return data;
+  }).catch((error) => {
+    pendingRequests.delete(key);
+    throw error;
+  });
+  
+  pendingRequests.set(key, promise);
+  return promise;
+}

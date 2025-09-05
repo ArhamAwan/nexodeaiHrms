@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { onPresence } from "@/lib/realtime";
 import { useAppSelector } from "@/store";
 import { toast } from "sonner";
+import { deduplicatedFetch } from "@/lib/cache";
 
 const PAGE_SIZE = 10;
 
@@ -20,14 +21,15 @@ export default function EmployeesClient() {
     const user = useAppSelector((s) => s.auth.user);
     const [activeTimers, setActiveTimers] = useState<Record<string, { startTime: string }>>({});
 
-    async function load() {
-        const res = await fetch("/api/employees", { 
-            next: { revalidate: 60 },
-            headers: { 'Cache-Control': 'max-age=60' }
-        });
-        const data = await res.json();
-        setRows(data.employees ?? []);
-    }
+    const load = useCallback(async () => {
+        try {
+            const data = await deduplicatedFetch("/api/employees");
+            setRows(data.employees ?? []);
+        } catch (error) {
+            console.error("Failed to load employees:", error);
+            toast.error("Failed to load employees");
+        }
+    }, []);
 
     useEffect(() => {
         (async () => {
