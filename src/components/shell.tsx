@@ -8,6 +8,7 @@ import { NotificationBell } from "@/components/notification-bell";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Search } from "lucide-react";
 import { connectPresence } from "@/lib/realtime";
+import ProfileEditModal from "./ProfileEditModal";
 
 type NavItem = { href: string; label: string; roles?: readonly string[] };
 type NavSection = { title: string; items: NavItem[] };
@@ -47,6 +48,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
 	const dispatch = useAppDispatch();
 	const user = useAppSelector((s) => s.auth.user);
 	const [searchQ, setSearchQ] = useState("");
+	const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
 	useEffect(() => {
 		if (user?.id) {
@@ -63,6 +65,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
 		await fetch("/api/auth/logout", { method: "POST" });
 		dispatch(clearCredentials());
 		router.push("/login");
+	}
+
+	function handleProfileUpdate(updatedUser: any) {
+		// Update the user in the store
+		dispatch({ type: "auth/setUser", payload: updatedUser });
 	}
 
 	function handleSearchKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -96,15 +103,18 @@ export function Shell({ children }: { children: React.ReactNode }) {
 					))}
 				</nav>
 				<div className="absolute bottom-4 left-4 right-4 p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
-					<div className="flex items-center space-x-3">
+					<button
+						onClick={() => setIsProfileModalOpen(true)}
+						className="w-full flex items-center space-x-3 hover:bg-slate-700/30 rounded-lg p-2 transition-colors"
+					>
 						<div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
 							<span className="text-white font-semibold">{user?.email?.[0]?.toUpperCase() ?? "U"}</span>
 						</div>
-						<div>
+						<div className="flex-1 text-left">
 							<p className="text-white font-medium truncate max-w-[140px]">{user?.email ?? "User"}</p>
 							<p className="text-slate-400 text-xs">Online</p>
 						</div>
-					</div>
+					</button>
 				</div>
 			</aside>
 
@@ -129,6 +139,16 @@ export function Shell({ children }: { children: React.ReactNode }) {
 				</header>
 				<div className="p-4 lg:p-8 flex-1">{children}</div>
 			</main>
+
+			{/* Profile Edit Modal */}
+			{user && (
+				<ProfileEditModal
+					isOpen={isProfileModalOpen}
+					onClose={() => setIsProfileModalOpen(false)}
+					user={user}
+					onUpdate={handleProfileUpdate}
+				/>
+			)}
 		</div>
 	);
 }
