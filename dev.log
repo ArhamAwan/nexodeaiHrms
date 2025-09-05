@@ -354,3 +354,52 @@ Error querying the database: FATAL: Tenant or user not found
   retryable: undefined
 }
  POST /api/auth/login 500 in 4070ms
+ GET /login 200 in 250ms
+ GET /favicon.ico?favicon.0b3bf435.ico 200 in 322ms
+Error [PrismaClientInitializationError]: 
+Invalid `prisma.user.findUnique()` invocation in
+/Users/arham/Documents/HRMS/web/.next/server/chunks/[root-of-the-server]__57be26c1._.js:180:36
+
+  177 if (!token) return null;
+  178 const payload = (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$auth$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["verifyRefreshToken"])(token);
+  179 if (!payload) return null;
+→ 180 const user = await prisma.user.findUnique(
+Error querying the database: FATAL: Tenant or user not found
+    at <unknown> (src/lib/api-auth.ts:13:33)
+    at async getCurrentUserWithEmployee (src/lib/api-auth.ts:13:15)
+    at async GET (src/app/api/auth/me/route.ts:5:15)
+  11 | 	const payload = verifyRefreshToken(token);
+  12 | 	if (!payload) return null;
+> 13 | 	const user = await prisma.user.findUnique({ where: { id: payload.uid }, include: { employee: true } });
+     | 	                               ^
+  14 | 	return user;
+  15 | }
+  16 | {
+  clientVersion: '6.15.0',
+  errorCode: undefined,
+  retryable: undefined
+}
+ GET /api/auth/me 500 in 3576ms
+/api/auth/login error Error [PrismaClientInitializationError]: 
+Invalid `prisma.user.findUnique()` invocation in
+/Users/arham/Documents/HRMS/web/.next/server/chunks/[root-of-the-server]__1f3ec110._.js:196:40
+
+  193     });
+  194 }
+  195 const { email, password } = parsed.data;
+→ 196 const user = await prisma.user.findUnique(
+Error querying the database: FATAL: Tenant or user not found
+    at <unknown> (src/app/api/auth/login/route.ts:17:34)
+    at async POST (src/app/api/auth/login/route.ts:17:16)
+  15 | 		}
+  16 | 		const { email, password } = parsed.data;
+> 17 | 		const user = await prisma.user.findUnique({ where: { email }, include: { employee: true } });
+     | 		                               ^
+  18 | 		if (!user || !verifyPassword(password, user.password)) {
+  19 | 			return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+  20 | 		} {
+  clientVersion: '6.15.0',
+  errorCode: undefined,
+  retryable: undefined
+}
+ POST /api/auth/login 500 in 3381ms

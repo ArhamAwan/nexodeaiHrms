@@ -125,7 +125,7 @@ export default function EmployeesClient() {
                 {open && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center">
                         <div className="absolute inset-0 bg-black/50" onClick={() => setOpen(false)} />
-                        <div className="relative bg-card text-foreground w-full max-w-lg rounded-2xl border p-6 anim-scale-in">
+                        <div className="relative bg-card text-foreground w-full max-w-lg rounded-2xl border p-6 anim-scale-in" onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center justify-between mb-4">
                                 <h4 className="font-semibold">New Employee</h4>
                                 <button onClick={() => setOpen(false)} className="px-2 py-1 rounded bg-muted">Esc</button>
