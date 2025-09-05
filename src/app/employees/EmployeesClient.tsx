@@ -21,7 +21,10 @@ export default function EmployeesClient() {
     const [activeTimers, setActiveTimers] = useState<Record<string, { startTime: string }>>({});
 
     async function load() {
-        const res = await fetch("/api/employees", { cache: "no-store" });
+        const res = await fetch("/api/employees", { 
+            next: { revalidate: 60 },
+            headers: { 'Cache-Control': 'max-age=60' }
+        });
         const data = await res.json();
         setRows(data.employees ?? []);
     }

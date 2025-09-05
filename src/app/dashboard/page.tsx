@@ -22,11 +22,27 @@ export default function DashboardPage() {
 	async function loadAll() {
 		try {
 			const [statsRes, timeRes, analyticsRes, holidaysRes, leavesRes] = await Promise.all([
-				fetch("/api/dashboard/stats", { credentials: "include", cache: "no-store" }),
+				fetch("/api/dashboard/stats", { 
+					credentials: "include", 
+					next: { revalidate: 30 },
+					headers: { 'Cache-Control': 'max-age=30' }
+				}),
 				fetch("/api/time", { credentials: "include", cache: "no-store" }),
-				fetch("/api/analytics", { credentials: "include", cache: "no-store" }),
-				fetch("/api/holidays", { credentials: "include", cache: "no-store" }),
-				fetch("/api/leaves", { credentials: "include", cache: "no-store" }),
+				fetch("/api/analytics", { 
+					credentials: "include", 
+					next: { revalidate: 60 },
+					headers: { 'Cache-Control': 'max-age=60' }
+				}),
+				fetch("/api/holidays", { 
+					credentials: "include", 
+					next: { revalidate: 300 },
+					headers: { 'Cache-Control': 'max-age=300' }
+				}),
+				fetch("/api/leaves", { 
+					credentials: "include", 
+					next: { revalidate: 60 },
+					headers: { 'Cache-Control': 'max-age=60' }
+				}),
 			]);
 			if (!statsRes.ok || !timeRes.ok || !analyticsRes.ok) {
 				throw new Error("Failed to load dashboard data");

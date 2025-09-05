@@ -1,0 +1,111 @@
+
+> web@0.1.0 dev /Users/arham/Documents/HRMS/web
+> next dev --turbopack
+
+   ▲ Next.js 15.5.2 (Turbopack)
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.100.211:3000
+   - Environments: .env
+
+ ✓ Starting...
+ ✓ Compiled middleware in 191ms
+ ✓ Ready in 975ms
+ ○ Compiling /api/auth/register ...
+ ✓ Compiled /api/auth/register in 841ms
+ POST /api/auth/register 201 in 3936ms
+ ✓ Compiled /api/auth/login in 83ms
+ POST /api/auth/login 200 in 1852ms
+ ○ Compiling /dashboard ...
+ POST /api/auth/login 200 in 2053ms
+ ✓ Compiled /dashboard in 1989ms
+ GET /dashboard 200 in 2070ms
+ ✓ Compiled /api/notifications in 256ms
+ GET /api/holidays 200 in 1790ms
+ GET /api/time 200 in 3989ms
+ GET /api/dashboard/stats 200 in 4520ms
+ GET /api/dashboard/stats 200 in 2749ms
+ GET /api/notifications 200 in 4561ms
+ GET /api/leaves 200 in 4768ms
+ GET /api/analytics 200 in 5252ms
+ GET /api/holidays 200 in 734ms
+ GET /api/time 200 in 1461ms
+ GET /api/leaves 200 in 1452ms
+ GET /api/notifications 200 in 1473ms
+ GET /api/analytics 200 in 1968ms
+ GET /api/notifications 200 in 1490ms
+ GET /api/notifications 200 in 1971ms
+ GET /api/notifications 200 in 1488ms
+ GET /api/notifications 200 in 1695ms
+ GET /api/notifications 200 in 2211ms
+ GET /api/notifications 200 in 2102ms
+ GET /api/notifications 200 in 1944ms
+ GET /api/notifications 200 in 2050ms
+ GET /api/notifications 200 in 1997ms
+ GET /api/notifications 200 in 2293ms
+ GET /api/notifications 200 in 2126ms
+ GET /api/notifications 200 in 3754ms
+ GET /api/notifications 200 in 1695ms
+ GET /api/notifications 200 in 1713ms
+ GET /api/notifications 200 in 1727ms
+ GET /api/notifications 200 in 1810ms
+ GET /api/notifications 200 in 1718ms
+ GET /api/notifications 200 in 3195ms
+ GET /api/notifications 200 in 1688ms
+ GET /api/notifications 200 in 1703ms
+ GET /api/notifications 200 in 2240ms
+ GET /api/notifications 200 in 1672ms
+ GET /api/notifications 200 in 1678ms
+ GET /api/notifications 200 in 3000ms
+ GET /api/notifications 200 in 1789ms
+ GET /api/notifications 200 in 1694ms
+ GET /api/notifications 200 in 1493ms
+ GET /api/notifications 200 in 1754ms
+ GET /api/notifications 200 in 1773ms
+ GET /api/notifications 200 in 1722ms
+ GET /api/notifications 200 in 1780ms
+ GET /api/notifications 200 in 1716ms
+ GET /api/notifications 200 in 1677ms
+ GET /api/notifications 200 in 2167ms
+ GET /api/notifications 200 in 4087ms
+ GET /api/notifications 200 in 1683ms
+ GET /api/notifications 200 in 1738ms
+ GET /api/notifications 200 in 2337ms
+ GET /api/notifications 200 in 1687ms
+ GET /api/notifications 200 in 1713ms
+ GET /api/notifications 200 in 3446ms
+ GET /api/notifications 200 in 2005ms
+ POST /api/auth/register 201 in 2916ms
+ ○ Compiling / ...
+ ✓ Compiled / in 536ms
+ GET / 307 in 783ms
+ ✓ Compiled /login in 320ms
+ GET /login 200 in 390ms
+ ✓ Compiled /api/auth/me in 88ms
+ GET /api/auth/me 200 in 1845ms
+ POST /api/auth/login 200 in 1833ms
+ GET /dashboard 200 in 35ms
+ GET /api/holidays 200 in 1591ms
+ GET /api/notifications 200 in 2305ms
+ GET /api/leaves 200 in 3052ms
+ GET /api/time 200 in 3337ms
+ GET /api/dashboard/stats 200 in 3357ms
+ GET /api/dashboard/stats 200 in 1981ms
+ GET /api/analytics 200 in 3867ms
+ GET /api/holidays 200 in 760ms
+ GET /api/time 200 in 2201ms
+ GET /api/leaves 200 in 1459ms
+ GET /api/notifications 200 in 1486ms
+ GET /api/analytics 200 in 2847ms
+ GET /api/notifications 200 in 1478ms
+ GET /api/notifications 200 in 1691ms
+ GET /api/notifications 200 in 1499ms
+ GET /api/notifications 200 in 1822ms
+ GET /api/notifications 200 in 1473ms
+ GET /api/notifications 200 in 1693ms
+ GET /api/notifications 200 in 1485ms
+ GET /api/notifications 200 in 1709ms
+ GET /api/notifications 200 in 1699ms
+   Reload env: .env
+   Reload env: .env
+ POST /api/auth/register 201 in 2749ms
+   Reload env: .env

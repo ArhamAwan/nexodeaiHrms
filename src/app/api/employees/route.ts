@@ -4,7 +4,13 @@ import { z } from "zod";
 import { getCurrentUserWithEmployee } from "@/lib/api-auth";
 import { hashPassword } from "@/lib/auth";
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL,
+    },
+  },
+});
 
 const createSchema = z.object({
 	email: z.string().email(),
@@ -18,7 +24,10 @@ export async function GET() {
 		include: { user: { select: { id: true, email: true, role: true } }, department: { select: { name: true } } },
 		orderBy: { createdAt: "desc" },
 	});
-	return NextResponse.json({ employees });
+	
+	const response = NextResponse.json({ employees });
+	response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+	return response;
 }
 
 export async function POST(req: NextRequest) {
