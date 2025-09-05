@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { onPresence } from "@/lib/realtime";
@@ -150,7 +150,8 @@ export default function EmployeesPage() {
 	}
 
 	return (
-		<div className="space-y-6">
+		<Suspense>
+			<div className="space-y-6">
 			<div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
 				<h1 className="text-2xl font-bold text-foreground">Employees</h1>
 				<div className="flex gap-2">
@@ -228,6 +229,7 @@ export default function EmployeesPage() {
 					<button disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))} className="px-3 py-1.5 rounded-lg bg-muted text-foreground disabled:opacity-50">Next</button>
 				</div>
 			</div>
-		</div>
+			</div>
+		</Suspense>
 	);
 }
