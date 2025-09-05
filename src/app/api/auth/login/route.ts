@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { loginSchema, verifyPassword, signAccessToken, signRefreshToken } from "@/lib/auth";
-import { PrismaClient } from "@/generated/prisma";
+import { PrismaClient } from "@prisma/client";
 import { cookies } from "next/headers";
 import crypto from "node:crypto";
 
