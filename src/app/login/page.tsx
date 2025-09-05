@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { connectPresence } from "@/lib/realtime";
 import { toast } from "sonner";
+import { useOnlineStatus } from "@/lib/useOnlineStatus";
 
 const schema = z.object({ email: z.string().email(), password: z.string().min(8) });
 
@@ -20,6 +21,9 @@ export default function LoginPage() {
 	const [loading, setLoading] = useState(false);
 	const router = useRouter();
 	const dispatch = useAppDispatch();
+	
+	// Start tracking online status after login
+	useOnlineStatus();
 
 	async function onSubmit(e: React.FormEvent) {
 		e.preventDefault();
@@ -65,12 +69,26 @@ export default function LoginPage() {
 				</div>
 				<form onSubmit={onSubmit} className="space-y-4">
 					<div className="space-y-2">
-						<Label htmlFor="email">Email</Label>
-						<Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+						<Label htmlFor="email" className="text-slate-700">Email</Label>
+						<Input 
+							id="email" 
+							type="email" 
+							value={email} 
+							onChange={(e) => setEmail(e.target.value)} 
+							required 
+							className="text-slate-900 placeholder:text-slate-500"
+						/>
 					</div>
 					<div className="space-y-2">
-						<Label htmlFor="password">Password</Label>
-						<Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+						<Label htmlFor="password" className="text-slate-700">Password</Label>
+						<Input 
+							id="password" 
+							type="password" 
+							value={password} 
+							onChange={(e) => setPassword(e.target.value)} 
+							required 
+							className="text-slate-900 placeholder:text-slate-500"
+						/>
 					</div>
 					{error && <p className="text-sm text-red-600">{error}</p>}
 					<Button type="submit" className="w-full" disabled={loading}>

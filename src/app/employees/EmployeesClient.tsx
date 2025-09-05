@@ -8,6 +8,7 @@ import { useAppSelector } from "@/store";
 import { toast } from "sonner";
 import { deduplicatedFetch } from "@/lib/cache";
 import AddEmployeeModal from "@/components/AddEmployeeModal";
+import EmployeeStatsModal from "@/components/EmployeeStatsModal";
 
 const PAGE_SIZE = 10;
 
@@ -40,8 +41,34 @@ export default function EmployeesClient() {
                 setLoading(false);
             }
         })();
-        const off = onPresence((p) => setOnline((m) => ({ ...m, [p.userId]: p.status === "online" })));
-        return () => off();
+    }, []);
+
+    // Load online status from API
+    useEffect(() => {
+        const loadOnlineStatus = async () => {
+            try {
+                const res = await fetch('/api/users/online', {
+                    credentials: 'include'
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    const onlineMap: Record<string, boolean> = {};
+                    data.onlineUsers.forEach((userId: string) => {
+                        onlineMap[userId] = true;
+                    });
+                    setOnline(onlineMap);
+                }
+            } catch (error) {
+                console.error('Failed to load online status:', error);
+            }
+        };
+
+        loadOnlineStatus();
+        
+        // Poll online status every 10 seconds
+        const interval = setInterval(loadOnlineStatus, 10000);
+        
+        return () => clearInterval(interval);
     }, []);
 
     // Poll active timers every 10s
@@ -96,6 +123,56 @@ export default function EmployeesClient() {
 
 
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isStatsModalOpen, setIsStatsModalOpen] = useState(false);
+    const [selectedEmployee, setSelectedEmployee] = useState<{id: string, name: string} | null>(null);
+
+    async function deleteEmployee(employeeId: string, employeeName: string) {
+        if (!confirm(`Are you sure you want to delete ${employeeName}? This action cannot be undone.`)) {
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/employees?id=${employeeId}`, {
+                method: "DELETE",
+                credentials: "include",
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            });
+
+            if (res.ok) {
+                toast.success("Employee deleted successfully");
+                // Force fresh fetch by bypassing cache
+                try {
+                    const data = await fetch("/api/employees", { cache: "no-store" });
+                    if (data.ok) {
+                        const result = await data.json();
+                        setRows(result.employees ?? []);
+                    }
+                } catch (error) {
+                    console.error("Failed to reload employees:", error);
+                    await load(); // Fallback to normal load
+                }
+            } else {
+                const data = await res.json().catch(() => ({}));
+                if (res.status === 403) {
+                    toast.error("You don't have permission to delete employees. Admin access required.");
+                } else if (res.status === 401) {
+                    toast.error("Please log in to perform this action.");
+                } else {
+                    toast.error(data.error || `Failed to delete employee (${res.status})`);
+                }
+            }
+        } catch (error) {
+            console.error("Error deleting employee:", error);
+            toast.error("Network error. Please check your connection and try again.");
+        }
+    }
+
+    function openEmployeeStats(employeeId: string, employeeName: string) {
+        setSelectedEmployee({ id: employeeId, name: employeeName });
+        setIsStatsModalOpen(true);
+    }
 
     return (
         <div className="space-y-6">
@@ -138,6 +215,7 @@ export default function EmployeesClient() {
                             <TableHead>Department</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead>Live Timer</TableHead>
+                            {user?.role === "ADMIN" && <TableHead>Actions</TableHead>}
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -149,19 +227,36 @@ export default function EmployeesClient() {
                             </>
                         ) : pageRows.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={6}>No employees found</TableCell>
+                                <TableCell colSpan={user?.role === "ADMIN" ? 7 : 6}>No employees found</TableCell>
                             </TableRow>
                         ) : (
                             pageRows.map((emp) => (
-                                <TableRow key={emp.id} className="hover:bg-muted">
+                                <TableRow 
+                                    key={emp.id} 
+                                    className="hover:bg-muted cursor-pointer"
+                                    onClick={() => openEmployeeStats(emp.id, `${emp.firstName} ${emp.lastName}`)}
+                                >
                                     <TableCell>
-                                        <span className={`inline-block w-2.5 h-2.5 rounded-full ${emp.user?.id && online[emp.user.id] ? "bg-green-500 online-indicator" : "bg-gray-300"}`} />
+                                        <span 
+                                            className={`inline-block w-2.5 h-2.5 rounded-full ${
+                                                emp.user?.id && online[emp.user.id] 
+                                                    ? "bg-green-500 online-indicator animate-pulse" 
+                                                    : "bg-gray-300"
+                                            }`} 
+                                            title={emp.user?.id && online[emp.user.id] ? "Online" : "Offline"}
+                                        />
                                     </TableCell>
                                     <TableCell>{emp.firstName} {emp.lastName}</TableCell>
                                     <TableCell>{emp.user?.email}</TableCell>
                                     <TableCell><span className="px-2 py-0.5 rounded-full text-xs bg-muted text-foreground">{emp.user?.role}</span></TableCell>
                                     <TableCell>{emp.department?.name ?? "-"}</TableCell>
-                                    <TableCell>{emp.user?.id && online[emp.user.id] ? <span className="text-emerald-600">Online</span> : <span className="text-muted-foreground">Offline</span>}</TableCell>
+                                    <TableCell>
+                                        {emp.user?.id && online[emp.user.id] ? (
+                                            <span className="text-emerald-600 font-medium">Online</span>
+                                        ) : (
+                                            <span className="text-muted-foreground">Offline</span>
+                                        )}
+                                    </TableCell>
                                     <TableCell>
                                         {activeTimers[emp.id] ? (() => {
                                             const startMs = new Date(activeTimers[emp.id].startTime).getTime();
@@ -172,6 +267,20 @@ export default function EmployeesClient() {
                                             return <span className="font-mono text-sm text-foreground">{h}:{m}:{s}</span>;
                                         })() : <span className="text-muted-foreground">—</span>}
                                     </TableCell>
+                                    {user?.role === "ADMIN" && (
+                                        <TableCell>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    deleteEmployee(emp.id, `${emp.firstName} ${emp.lastName}`);
+                                                }}
+                                                className="px-2 py-1 text-xs bg-red-500 hover:bg-red-600 text-white rounded transition-colors"
+                                                title="Delete employee"
+                                            >
+                                                Delete
+                                            </button>
+                                        </TableCell>
+                                    )}
                                 </TableRow>
                             ))
                         )}
@@ -192,6 +301,18 @@ export default function EmployeesClient() {
                 onClose={() => setIsAddModalOpen(false)}
                 onCreated={load}
             />
+            
+            {selectedEmployee && (
+                <EmployeeStatsModal
+                    isOpen={isStatsModalOpen}
+                    onClose={() => {
+                        setIsStatsModalOpen(false);
+                        setSelectedEmployee(null);
+                    }}
+                    employeeId={selectedEmployee.id}
+                    employeeName={selectedEmployee.name}
+                />
+            )}
         </div>
     );
 }

@@ -85,3 +85,72 @@ export async function POST(req: NextRequest) {
 	});
 	return NextResponse.json({ id: user.id, tempPassword }, { status: 201 });
 }
+
+export async function DELETE(req: NextRequest) {
+	const current = await getCurrentUserWithEmployee();
+	console.log("DELETE employee - Current user:", current ? { id: current.id, role: current.role } : "No user");
+	
+	if (!current) {
+		return NextResponse.json({ error: "Unauthorized - Please log in" }, { status: 401 });
+	}
+	
+	if (current.role !== "ADMIN") {
+		return NextResponse.json({ error: "Forbidden - Admin access required" }, { status: 403 });
+	}
+	
+	const { searchParams } = new URL(req.url);
+	const employeeId = searchParams.get("id");
+	
+	if (!employeeId) {
+		return NextResponse.json({ error: "Employee ID is required" }, { status: 400 });
+	}
+	
+	try {
+		// Find the employee and their user
+		const employee = await prisma.employee.findUnique({
+			where: { id: employeeId },
+			include: { user: true }
+		});
+		
+		if (!employee) {
+			return NextResponse.json({ error: "Employee not found" }, { status: 404 });
+		}
+		
+		// Prevent admin from deleting themselves
+		if (employee.userId === current.id) {
+			return NextResponse.json({ error: "Cannot delete your own account" }, { status: 400 });
+		}
+		
+		// Delete related records first to avoid foreign key constraints
+		await prisma.attendance.deleteMany({
+			where: { employeeId: employeeId }
+		});
+		
+		await prisma.leave.deleteMany({
+			where: { employeeId: employeeId }
+		});
+		
+		await prisma.timeLog.deleteMany({
+			where: { employeeId: employeeId }
+		});
+		
+		await prisma.report.deleteMany({
+			where: { employeeId: employeeId }
+		});
+		
+		// Delete the employee record
+		await prisma.employee.delete({
+			where: { id: employeeId }
+		});
+		
+		// Finally delete the user
+		await prisma.user.delete({
+			where: { id: employee.userId }
+		});
+		
+		return NextResponse.json({ message: "Employee deleted successfully" }, { status: 200 });
+	} catch (error) {
+		console.error("/api/employees DELETE error", error);
+		return NextResponse.json({ error: "Failed to delete employee" }, { status: 500 });
+	}
+}

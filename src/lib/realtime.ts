@@ -12,6 +12,12 @@ export function getSocket() {
 export function connectPresence(userId: string) {
 	const s = getSocket();
 	s.auth = { userId };
+	
+	// Handle connection errors gracefully
+	s.on('connect_error', (error) => {
+		console.log('WebSocket connection failed (this is normal on localhost):', error.message);
+	});
+	
 	s.connect();
 	return s;
 }

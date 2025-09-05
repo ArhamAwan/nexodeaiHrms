@@ -9,6 +9,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Search } from "lucide-react";
 import { connectPresence } from "@/lib/realtime";
 import ProfileEditModal from "./ProfileEditModal";
+import { useOnlineStatus } from "@/lib/useOnlineStatus";
 
 type NavItem = { href: string; label: string; roles?: readonly string[] };
 type NavSection = { title: string; items: NavItem[] };
@@ -50,22 +51,37 @@ export function Shell({ children }: { children: React.ReactNode }) {
 	const [searchQ, setSearchQ] = useState("");
 	const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
-	useEffect(() => {
-		if (user?.id) {
-			connectPresence(user.id);
-		}
-	}, [user?.id]);
+	        useEffect(() => {
+            if (user?.id) {
+                connectPresence(user.id);
+            }
+        }, [user?.id]);
+
+        // Track online status
+        useOnlineStatus();
 
 	const filteredSections = navSections.map((section) => ({
 		title: section.title,
 		items: section.items.filter((l) => !l.roles || (user?.role && (l.roles as readonly string[]).includes(user.role))),
 	}));
 
-	async function logout() {
-		await fetch("/api/auth/logout", { method: "POST" });
-		dispatch(clearCredentials());
-		router.push("/login");
-	}
+	        async function logout() {
+            try {
+                // Mark user as offline
+                await fetch("/api/users/online", {
+                    method: "DELETE",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ sessionId: "logout" })
+                });
+            } catch (error) {
+                console.error("Failed to set offline status:", error);
+            }
+            
+            await fetch("/api/auth/logout", { method: "POST" });
+            dispatch(clearCredentials());
+            router.push("/login");
+        }
 
 	function handleProfileUpdate(updatedUser: any) {
 		// Update the user in the store
