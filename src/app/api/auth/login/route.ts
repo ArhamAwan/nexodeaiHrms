@@ -32,6 +32,7 @@ export async function POST(req: NextRequest) {
 		});
 		return NextResponse.json({ accessToken, user: { id: user.id, email: user.email, role: user.role, employee: user.employee } }, { status: 200 });
 	} catch (e) {
+		console.error("/api/auth/login error", e);
 		return NextResponse.json({ error: "Server error" }, { status: 500 });
 	}
 }
