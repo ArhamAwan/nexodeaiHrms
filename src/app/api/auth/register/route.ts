@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
 
 		return NextResponse.json({ accessToken, user: { id: user.id, email: user.email, role: user.role, employee: user.employee } }, { status: 201 });
 	} catch (err) {
+		console.error("/api/auth/register error", err);
 		return NextResponse.json({ error: "Server error" }, { status: 500 });
 	}
 }
