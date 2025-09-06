@@ -114,6 +114,9 @@ model TimeLog {
   startTime      DateTime
   endTime        DateTime?
   durationSec    Int?
+  isPaused       Boolean  @default(false)
+  pauseStartTime DateTime?
+  totalPauseSec  Int      @default(0)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { deduplicatedFetch } from "@/lib/cache";
 import AddEmployeeModal from "@/components/AddEmployeeModal";
 import EmployeeStatsModal from "@/components/EmployeeStatsModal";
+import { Users, Search, Filter, Plus, UserCheck, Clock, Trash2, Eye } from "lucide-react";
 
 const PAGE_SIZE = 10;
 
@@ -25,7 +26,7 @@ export default function EmployeesClient() {
 
     const load = useCallback(async () => {
         try {
-            const data = await deduplicatedFetch("/api/employees");
+            const data = await deduplicatedFetch("/api/employees") as { employees?: any[] };
             setRows(data.employees ?? []);
         } catch (error) {
             console.error("Failed to load employees:", error);
@@ -65,13 +66,13 @@ export default function EmployeesClient() {
 
         loadOnlineStatus();
         
-        // Poll online status every 10 seconds
-        const interval = setInterval(loadOnlineStatus, 10000);
+        // Poll online status every 30 seconds (reduced from 10s)
+        const interval = setInterval(loadOnlineStatus, 30000);
         
         return () => clearInterval(interval);
     }, []);
 
-    // Poll active timers every 10s
+    // Poll active timers every 30s (reduced from 10s)
     useEffect(() => {
         let mounted = true;
         const fetchActivity = async () => {
@@ -84,7 +85,7 @@ export default function EmployeesClient() {
             setActiveTimers(map);
         };
         fetchActivity();
-        const id = setInterval(fetchActivity, 10000);
+        const id = setInterval(fetchActivity, 30000);
         return () => { mounted = false; clearInterval(id); };
     }, []);
 
@@ -142,17 +143,8 @@ export default function EmployeesClient() {
 
             if (res.ok) {
                 toast.success("Employee deleted successfully");
-                // Force fresh fetch by bypassing cache
-                try {
-                    const data = await fetch("/api/employees", { cache: "no-store" });
-                    if (data.ok) {
-                        const result = await data.json();
-                        setRows(result.employees ?? []);
-                    }
-                } catch (error) {
-                    console.error("Failed to reload employees:", error);
-                    await load(); // Fallback to normal load
-                }
+                // Remove employee from local state immediately for better responsiveness
+                setRows(prevRows => prevRows.filter(emp => emp.id !== employeeId));
             } else {
                 const data = await res.json().catch(() => ({}));
                 if (res.status === 403) {
@@ -175,49 +167,128 @@ export default function EmployeesClient() {
     }
 
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <h1 className="text-2xl font-bold text-foreground">Employees</h1>
-                <div className="flex gap-2">
-                    <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name or email" className="px-3 py-2 rounded-xl bg-muted text-foreground placeholder:text-muted-foreground border border-border focus:bg-card focus:outline-none focus:ring-2 focus:ring-blue-500 w-64" />
-                    <select value={role} onChange={(e) => setRole(e.target.value)} className="px-3 py-2 rounded-xl bg-muted text-foreground border border-border focus:bg-card focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="ALL">All roles</option>
-                        <option value="EMPLOYEE">Employee</option>
-                        <option value="HR">HR</option>
-                        <option value="MANAGER">Manager</option>
-                        <option value="ADMIN">Admin</option>
-                    </select>
+        <div className="space-y-8">
+            {/* Header Section */}
+            <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                    <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                        <Users className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                        <h1 className="text-3xl font-bold text-white drop-shadow-lg">Employees</h1>
+                        <p className="text-white/70 text-sm drop-shadow-md">Manage your team members and their information</p>
+                    </div>
+                </div>
+                <div className="text-right">
+                    <div className="text-2xl font-bold text-white drop-shadow-lg">{rows.length}</div>
+                    <div className="text-white/60 text-sm">Total Employees</div>
+                </div>
+            </div>
+
+            {/* Search and Filter Section */}
+            <div className="relative p-6 rounded-2xl premium-shadow overflow-hidden
+                glass-light
+                ring-1 ring-offset-white/20 ring-white/20 ring-offset-2 
+                shadow-button hover:shadow-button-hover transition-all duration-300
+                hover:bg-white/15 hover:border-white/40 hover:ring-white/30 hover:ring-offset-4 hover:ring-offset-black/20
+                before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/5 before:to-transparent before:animate-shine before:pointer-events-none before:rounded-2xl
+                after:absolute after:inset-0 after:bg-gradient-to-br after:from-white/3 after:via-transparent after:to-transparent after:pointer-events-none after:rounded-2xl">
+                <div className="flex items-center space-x-3 mb-4">
+                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                        <Search className="w-4 h-4 text-white" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-white drop-shadow-lg">Search & Filter</h3>
+                </div>
+                <div className="flex flex-col md:flex-row gap-4">
+                    <div className="flex-1 relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/60" />
+                        <input 
+                            value={q} 
+                            onChange={(e) => setQ(e.target.value)} 
+                            placeholder="Search by name or email..." 
+                            className="w-full pl-10 pr-4 py-3 rounded-xl glass-light text-white placeholder:text-white/60 border border-white/30 focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                        />
+                    </div>
+                    <div className="relative">
+                        <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/60" />
+                        <select 
+                            value={role} 
+                            onChange={(e) => setRole(e.target.value)} 
+                            className="pl-10 pr-8 py-3 rounded-xl glass-light text-white border border-white/30 focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[160px]"
+                        >
+                            <option value="ALL" className="bg-gray-800 text-white">All Roles</option>
+                            <option value="EMPLOYEE" className="bg-gray-800 text-white">Employee</option>
+                            <option value="HR" className="bg-gray-800 text-white">HR</option>
+                            <option value="MANAGER" className="bg-gray-800 text-white">Manager</option>
+                            <option value="ADMIN" className="bg-gray-800 text-white">Admin</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
             {(user?.role === "ADMIN" || user?.role === "HR") && (
-                <div className="bg-card rounded-2xl border premium-shadow p-4">
+                <div className="relative p-6 rounded-2xl premium-shadow overflow-hidden
+                    glass-light
+                    ring-1 ring-offset-white/20 ring-white/20 ring-offset-2 
+                    shadow-button hover:shadow-button-hover transition-all duration-300
+                    hover:bg-white/15 hover:border-white/40 hover:ring-white/30 hover:ring-offset-4 hover:ring-offset-black/20
+                    before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/5 before:to-transparent before:animate-shine before:pointer-events-none before:rounded-2xl
+                    after:absolute after:inset-0 after:bg-gradient-to-br after:from-white/3 after:via-transparent after:to-transparent after:pointer-events-none after:rounded-2xl">
                     <div className="flex items-center justify-between">
-                        <h3 className="font-semibold text-foreground">Add Employee</h3>
+                        <div className="flex items-center space-x-3">
+                            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                                <Plus className="w-4 h-4 text-white" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-semibold text-white drop-shadow-lg">Add New Employee</h3>
+                                <p className="text-white/70 text-sm">Onboard a new team member to the system</p>
+                            </div>
+                        </div>
                         <button 
                             onClick={() => setIsAddModalOpen(true)}
-                            className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 transition-colors"
+                            className="px-6 py-3 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-all duration-200 flex items-center space-x-2 shadow-lg hover:shadow-xl"
                         >
-                            Open
+                            <Plus className="w-4 h-4" />
+                            <span>Add Employee</span>
                         </button>
                     </div>
                 </div>
             )}
 
-            <div className="bg-card rounded-2xl border premium-shadow overflow-hidden">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead className="w-[32px]" />
-                            <TableHead>Name</TableHead>
-                            <TableHead>Email</TableHead>
-                            <TableHead>Role</TableHead>
-                            <TableHead>Department</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Live Timer</TableHead>
-                            {user?.role === "ADMIN" && <TableHead>Actions</TableHead>}
-                        </TableRow>
-                    </TableHeader>
+            {/* Employees Table Section */}
+            <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                            <UserCheck className="w-4 h-4 text-white" />
+                        </div>
+                        <h2 className="text-xl font-semibold text-white drop-shadow-lg">Employee Directory</h2>
+                    </div>
+                    <div className="text-sm text-white/60">
+                        Showing {pageRows.length} of {filtered.length} employees
+                    </div>
+                </div>
+
+                <div className="relative rounded-2xl premium-shadow overflow-hidden
+                    glass-light
+                    ring-1 ring-offset-white/20 ring-white/20 ring-offset-2 
+                    shadow-button hover:shadow-button-hover transition-all duration-300
+                    hover:bg-white/15 hover:border-white/40 hover:ring-white/30 hover:ring-offset-4 hover:ring-offset-black/20
+                    before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/5 before:to-transparent before:animate-shine before:pointer-events-none before:rounded-2xl
+                    after:absolute after:inset-0 after:bg-gradient-to-br after:from-white/3 after:via-transparent after:to-transparent after:pointer-events-none after:rounded-2xl">
+                    <Table>
+                        <TableHeader>
+                            <TableRow className="border-white/20">
+                                <TableHead className="w-[40px] text-white/80 font-semibold">Status</TableHead>
+                                <TableHead className="text-white/80 font-semibold">Employee</TableHead>
+                                <TableHead className="text-white/80 font-semibold">Contact</TableHead>
+                                <TableHead className="text-white/80 font-semibold">Role</TableHead>
+                                <TableHead className="text-white/80 font-semibold">Department</TableHead>
+                                <TableHead className="text-white/80 font-semibold">Online Status</TableHead>
+                                <TableHead className="text-white/80 font-semibold">Live Timer</TableHead>
+                                {user?.role === "ADMIN" && <TableHead className="text-white/80 font-semibold">Actions</TableHead>}
+                            </TableRow>
+                        </TableHeader>
                     <TableBody>
                         {loading ? (
                             <>
@@ -233,29 +304,68 @@ export default function EmployeesClient() {
                             pageRows.map((emp) => (
                                 <TableRow 
                                     key={emp.id} 
-                                    className="hover:bg-muted cursor-pointer"
+                                    className="hover:bg-white/5 cursor-pointer border-white/10 group"
                                     onClick={() => openEmployeeStats(emp.id, `${emp.firstName} ${emp.lastName}`)}
                                 >
                                     <TableCell>
-                                        <span 
-                                            className={`inline-block w-2.5 h-2.5 rounded-full ${
-                                                emp.user?.id && online[emp.user.id] 
-                                                    ? "bg-green-500 online-indicator animate-pulse" 
-                                                    : "bg-gray-300"
-                                            }`} 
-                                            title={emp.user?.id && online[emp.user.id] ? "Online" : "Offline"}
-                                        />
+                                        <div className="flex items-center justify-center">
+                                            <span 
+                                                className={`inline-block w-3 h-3 rounded-full ${
+                                                    emp.user?.id && online[emp.user.id] 
+                                                        ? "bg-green-400 online-indicator animate-pulse" 
+                                                        : "bg-gray-400"
+                                                }`} 
+                                                title={emp.user?.id && online[emp.user.id] ? "Online" : "Offline"}
+                                            />
+                                        </div>
                                     </TableCell>
-                                    <TableCell>{emp.firstName} {emp.lastName}</TableCell>
-                                    <TableCell>{emp.user?.email}</TableCell>
-                                    <TableCell><span className="px-2 py-0.5 rounded-full text-xs bg-muted text-foreground">{emp.user?.role}</span></TableCell>
-                                    <TableCell>{emp.department?.name ?? "-"}</TableCell>
                                     <TableCell>
-                                        {emp.user?.id && online[emp.user.id] ? (
-                                            <span className="text-emerald-600 font-medium">Online</span>
-                                        ) : (
-                                            <span className="text-muted-foreground">Offline</span>
-                                        )}
+                                        <div className="flex items-center space-x-3">
+                                            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                                                <span className="text-white font-semibold text-sm">
+                                                    {emp.firstName?.[0]?.toUpperCase()}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <div className="text-white font-medium">{emp.firstName} {emp.lastName}</div>
+                                                <div className="text-white/60 text-xs">{emp.designation || "Employee"}</div>
+                                            </div>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="text-white/80">{emp.user?.email}</div>
+                                        {emp.phone && <div className="text-white/60 text-xs">{emp.phone}</div>}
+                                    </TableCell>
+                                    <TableCell>
+                                        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${
+                                            emp.user?.role === "ADMIN" ? "bg-red-500/20 text-red-300 border-red-400/30" :
+                                            emp.user?.role === "MANAGER" ? "bg-purple-500/20 text-purple-300 border-purple-400/30" :
+                                            emp.user?.role === "HR" ? "bg-blue-500/20 text-blue-300 border-blue-400/30" :
+                                            "bg-green-500/20 text-green-300 border-green-400/30"
+                                        }`}>
+                                            {emp.user?.role}
+                                        </span>
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="text-white/80">{emp.department?.name ?? "-"}</div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="flex items-center space-x-2">
+                                            <span 
+                                                className={`inline-block w-2 h-2 rounded-full ${
+                                                    emp.user?.id && online[emp.user.id] 
+                                                        ? "bg-green-400 animate-pulse" 
+                                                        : "bg-gray-400"
+                                                }`} 
+                                            />
+                                            <span className={`text-sm font-medium ${
+                                                emp.user?.id && online[emp.user.id] 
+                                                    ? "text-green-400" 
+                                                    : "text-white/60"
+                                            }`}>
+                                                {emp.user?.id && online[emp.user.id] ? "Online" : "Offline"}
+                                            </span>
+                                        </div>
                                     </TableCell>
                                     <TableCell>
                                         {activeTimers[emp.id] ? (() => {
@@ -264,21 +374,38 @@ export default function EmployeesClient() {
                                             const h = String(Math.floor(diff / 3600)).padStart(2, "0");
                                             const m = String(Math.floor((diff % 3600) / 60)).padStart(2, "0");
                                             const s = String(diff % 60).padStart(2, "0");
-                                            return <span className="font-mono text-sm text-foreground">{h}:{m}:{s}</span>;
-                                        })() : <span className="text-muted-foreground">—</span>}
+                                            return (
+                                                <div className="flex items-center space-x-2">
+                                                    <Clock className="w-3 h-3 text-green-400" />
+                                                    <span className="font-mono text-sm text-green-400">{h}:{m}:{s}</span>
+                                                </div>
+                                            );
+                                        })() : <span className="text-white/60">—</span>}
                                     </TableCell>
                                     {user?.role === "ADMIN" && (
                                         <TableCell>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    deleteEmployee(emp.id, `${emp.firstName} ${emp.lastName}`);
-                                                }}
-                                                className="px-2 py-1 text-xs bg-red-500 hover:bg-red-600 text-white rounded transition-colors"
-                                                title="Delete employee"
-                                            >
-                                                Delete
-                                            </button>
+                                            <div className="flex items-center space-x-2">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        openEmployeeStats(emp.id, `${emp.firstName} ${emp.lastName}`);
+                                                    }}
+                                                    className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200"
+                                                    title="View details"
+                                                >
+                                                    <Eye className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        deleteEmployee(emp.id, `${emp.firstName} ${emp.lastName}`);
+                                                    }}
+                                                    className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all duration-200"
+                                                    title="Delete employee"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
                                         </TableCell>
                                     )}
                                 </TableRow>
@@ -287,19 +414,57 @@ export default function EmployeesClient() {
                     </TableBody>
                 </Table>
             </div>
+            </div>
 
+            {/* Pagination */}
             <div className="flex items-center justify-between">
-                <div className="text-sm text-muted-foreground">Page {page} of {totalPages}</div>
-                <div className="flex gap-2">
-                    <button disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))} className="px-3 py-1.5 rounded-lg bg-muted text-foreground disabled:opacity-50">Prev</button>
-                    <button disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))} className="px-3 py-1.5 rounded-lg bg-muted text-foreground disabled:opacity-50">Next</button>
+                <div className="text-sm text-white/80">
+                    Showing {((page - 1) * PAGE_SIZE) + 1} to {Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length} employees
+                </div>
+                <div className="flex items-center space-x-2">
+                    <button 
+                        disabled={page <= 1} 
+                        onClick={() => setPage((p) => Math.max(1, p - 1))} 
+                        className="px-4 py-2 rounded-xl glass-light text-white disabled:opacity-50 hover:bg-white/10 transition-all duration-200 flex items-center space-x-2"
+                    >
+                        <span>Previous</span>
+                    </button>
+                    <div className="flex items-center space-x-1">
+                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                            const pageNum = Math.max(1, Math.min(totalPages - 4, page - 2)) + i;
+                            if (pageNum > totalPages) return null;
+                            return (
+                                <button
+                                    key={pageNum}
+                                    onClick={() => setPage(pageNum)}
+                                    className={`w-8 h-8 rounded-lg text-sm font-medium transition-all duration-200 ${
+                                        page === pageNum
+                                            ? "bg-blue-600 text-white"
+                                            : "glass-light text-white/80 hover:bg-white/10 hover:text-white"
+                                    }`}
+                                >
+                                    {pageNum}
+                                </button>
+                            );
+                        })}
+                    </div>
+                    <button 
+                        disabled={page >= totalPages} 
+                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))} 
+                        className="px-4 py-2 rounded-xl glass-light text-white disabled:opacity-50 hover:bg-white/10 transition-all duration-200 flex items-center space-x-2"
+                    >
+                        <span>Next</span>
+                    </button>
                 </div>
             </div>
             
             <AddEmployeeModal 
                 isOpen={isAddModalOpen}
                 onClose={() => setIsAddModalOpen(false)}
-                onCreated={load}
+                onCreated={async () => {
+                    // Reload employees list after adding new employee
+                    await load();
+                }}
             />
             
             {selectedEmployee && (
@@ -316,5 +481,3 @@ export default function EmployeesClient() {
         </div>
     );
 }
-
-

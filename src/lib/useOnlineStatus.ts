@@ -18,7 +18,7 @@ export function useOnlineStatus() {
         } catch (error) {
           console.error('Failed to update online status:', error);
         }
-      }, 30000); // Update every 30 seconds
+      }, 60000); // Update every 60 seconds (reduced frequency)
     };
 
     // Initial heartbeat

@@ -1,13 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { requireRole } from "@/lib/rbac";
 
-const prisma = new PrismaClient();
-
 export async function GET() {
-	const holidays = await prisma.holiday.findMany({ orderBy: { date: "asc" } });
-	return NextResponse.json({ holidays });
+	try {
+		const holidays = await prisma.holiday.findMany({ 
+			orderBy: { date: "asc" },
+			select: {
+				id: true,
+				name: true,
+				date: true,
+				createdAt: true
+			}
+		});
+		
+		const response = NextResponse.json({ holidays });
+		// Cache holidays for 1 hour since they don't change frequently
+		response.headers.set('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=7200');
+		return response;
+	} catch (error) {
+		console.error("/api/holidays GET error", error);
+		return NextResponse.json({ error: "Failed to load holidays" }, { status: 500 });
+	}
 }
 
 const schema = z.object({ name: z.string().min(1), date: z.string() });

@@ -39,18 +39,34 @@ export async function deduplicatedFetch<T>(url: string, options?: RequestInit): 
   // Make new request
   const promise = fetch(url, options).then(async (res) => {
     if (!res.ok) {
-      const errorText = await res.text();
+      let errorText = 'Unknown error';
+      try {
+        errorText = await res.text();
+      } catch (e) {
+        // Ignore text parsing errors
+      }
       throw new Error(`HTTP ${res.status}: ${errorText}`);
     }
     
     const contentType = res.headers.get('content-type');
     if (!contentType || !contentType.includes('application/json')) {
-      const text = await res.text();
+      let text = 'Non-JSON response';
+      try {
+        text = await res.text();
+      } catch (e) {
+        // Ignore text parsing errors
+      }
       throw new Error(`Expected JSON response, got: ${text}`);
     }
     
-    const data = await res.json();
-    setCachedData(key, data, 30000); // 30 second cache
+    let data;
+    try {
+      data = await res.json();
+    } catch (e) {
+      throw new Error(`Failed to parse JSON response: ${e instanceof Error ? e.message : 'Unknown error'}`);
+    }
+    
+    setCachedData(key, data, 10000); // 10 second cache for better responsiveness
     pendingRequests.delete(key);
     return data;
   }).catch((error) => {

@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
 import { z } from "zod";
 import { getCurrentUserWithEmployee } from "@/lib/api-auth";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 const schema = z.object({
 	type: z.enum(["DAILY", "WEEKLY", "MONTHLY", "PROJECT", "CUSTOM"]),

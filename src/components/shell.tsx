@@ -98,54 +98,97 @@ export function Shell({ children }: { children: React.ReactNode }) {
 	}
 
 	return (
-		<div className="min-h-svh bg-background">
+		<div className="min-h-svh">
 			{/* Fixed Sidebar */}
-			<aside className="hidden lg:block fixed left-0 top-0 h-svh w-[260px] bg-gradient-to-b from-slate-900 to-slate-800 text-white shadow-2xl border-r border-slate-700/50">
-				<div className="p-6 border-b border-slate-700/50 anim-slide-up anim-delay-1">
-					<h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">HRMS</h1>
-					<p className="text-slate-400 text-sm mt-1">Human Resources</p>
+			<aside className="hidden lg:block fixed left-0 top-0 h-svh w-[280px] text-white shadow-2xl border-r border-white/20 glass-light">
+				{/* Header Section */}
+				<div className="p-6 border-b border-white/20 anim-slide-up anim-delay-1">
+					<div className="flex items-center space-x-3">
+						<div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
+							<span className="text-white font-bold text-lg">H</span>
+						</div>
+						<div>
+							<h1 className="text-xl font-bold text-white drop-shadow-lg">HRMS</h1>
+							<p className="text-white/70 text-xs drop-shadow-sm">Human Resources</p>
+						</div>
+					</div>
 				</div>
-				<nav className="p-4 space-y-6 pr-2 pb-28">
-					{filteredSections.map((section) => (
-						<div key={section.title} className="space-y-2 anim-slide-up">
-							<div className="px-2 text-xs uppercase tracking-wide text-slate-400/80">{section.title}</div>
-							{section.items.map((l) => (
-								<Link key={l.href} href={l.href} className={`flex items-center space-x-3 p-2.5 rounded-xl hover:bg-slate-700/50 transition-all duration-200 group ${pathname.startsWith(l.href) ? "bg-slate-700/50" : ""}`}>
-									<span className="w-2 h-2 rounded-full bg-slate-600 group-hover:bg-blue-400" />
-									<span className="font-medium text-sm">{l.label}</span>
-								</Link>
-							))}
+				
+				{/* Navigation Section */}
+				<nav className="flex-1 p-4 space-y-8 overflow-y-auto">
+					{filteredSections.map((section, sectionIndex) => (
+						<div key={section.title} className="space-y-3 anim-slide-up" style={{ animationDelay: `${(sectionIndex + 1) * 100}ms` }}>
+							<div className="px-3 text-xs font-semibold uppercase tracking-wider text-white/50 drop-shadow-sm">
+								{section.title}
+							</div>
+							<div className="space-y-1">
+								{section.items.map((l, itemIndex) => (
+									<Link 
+										key={l.href} 
+										href={l.href} 
+										className={`flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200 group relative ${
+											pathname.startsWith(l.href) 
+												? "bg-white/15 text-white shadow-sm" 
+												: "text-white/80 hover:bg-white/8 hover:text-white"
+										}`}
+									>
+										{/* Active indicator */}
+										{pathname.startsWith(l.href) && (
+											<div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full" />
+										)}
+										
+										{/* Icon placeholder */}
+										<div className={`w-5 h-5 rounded-md flex items-center justify-center transition-colors ${
+											pathname.startsWith(l.href) 
+												? "bg-white/20" 
+												: "bg-white/10 group-hover:bg-white/15"
+										}`}>
+											<div className="w-2 h-2 rounded-full bg-white/60" />
+										</div>
+										
+										{/* Label */}
+										<span className="font-medium text-sm drop-shadow-sm">{l.label}</span>
+									</Link>
+								))}
+							</div>
 						</div>
 					))}
 				</nav>
-				<div className="absolute bottom-4 left-4 right-4 p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
+				{/* User Profile Section */}
+				<div className="absolute bottom-4 left-4 right-4 rounded-xl shadow-button user-profile-glass">
 					<button
 						onClick={() => setIsProfileModalOpen(true)}
-						className="w-full flex items-center space-x-3 hover:bg-slate-700/30 rounded-lg p-2 transition-colors"
+						className="w-full flex items-center space-x-3 hover:bg-white/10 rounded-xl p-4 transition-all duration-200 backdrop-blur-sm group"
 					>
-						<div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-							<span className="text-white font-semibold">{user?.email?.[0]?.toUpperCase() ?? "U"}</span>
+						<div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+							<span className="text-white font-semibold text-sm">{(user?.employee?.firstName?.[0] || user?.email?.[0])?.toUpperCase() ?? "U"}</span>
 						</div>
-						<div className="flex-1 text-left">
-							<p className="text-white font-medium truncate max-w-[140px]">{user?.email ?? "User"}</p>
-							<p className="text-slate-400 text-xs">Online</p>
+						<div className="flex-1 text-left min-w-0">
+							<p className="text-white font-medium text-sm truncate drop-shadow-md">{user?.employee?.firstName || user?.email || "User"}</p>
+							<div className="flex items-center space-x-2">
+								<div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+								<p className="text-white/70 text-xs drop-shadow-sm">Online</p>
+							</div>
+						</div>
+						<div className="w-5 h-5 flex items-center justify-center">
+							<div className="w-1.5 h-1.5 bg-white/40 rounded-full" />
 						</div>
 					</button>
 				</div>
 			</aside>
 
 			{/* Scrollable Main (accounting for fixed sidebar width) */}
-			<main className="flex flex-col min-h-svh lg:ml-[260px] overflow-y-auto">
-				<header className="bg-background/80 backdrop-blur-xl border-b border-border px-6 lg:px-8 py-4 sticky top-0 z-50">
+			<main className="flex flex-col min-h-svh lg:ml-[280px] overflow-y-auto">
+				<header className="glass-light border-b border-white/20 px-6 lg:px-8 py-4 sticky top-0 z-50">
 					<div className="flex items-center justify-between">
 						<div>
-							<h1 className="text-2xl lg:text-3xl font-bold text-foreground">Dashboard</h1>
-							<p className="text-muted-foreground hidden md:block">Welcome back! Here's what's happening today.</p>
+							<h1 className="text-2xl lg:text-3xl font-bold text-white drop-shadow-lg">Dashboard</h1>
+							<p className="text-white/80 hidden md:block drop-shadow-md">Welcome back! Here's what's happening today.</p>
 						</div>
 						<div className="flex items-center gap-3">
 							<div className="relative hidden md:block">
-								<input value={searchQ} onChange={(e) => setSearchQ(e.target.value)} onKeyDown={handleSearchKeyDown} className="w-64 lg:w-80 pl-10 pr-4 py-2 rounded-full border bg-muted text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-blue-500 focus:bg-card transition-all" placeholder="Search employees, reports..." />
-								<Search className="absolute left-3 top-2.5 w-5 h-5 text-muted-foreground" />
+								<input value={searchQ} onChange={(e) => setSearchQ(e.target.value)} onKeyDown={handleSearchKeyDown} className="w-64 lg:w-80 pl-10 pr-4 py-2 rounded-full border border-white/30 glass-light text-white placeholder:text-white/60 focus:ring-2 focus:ring-blue-500 focus:bg-white/20 transition-all" placeholder="Search employees, reports..." />
+								<Search className="absolute left-3 top-2.5 w-5 h-5 text-white/60" />
 							</div>
 							<ThemeToggle />
 							<NotificationBell />

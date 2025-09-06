@@ -9,7 +9,12 @@ import LazyChart from "@/components/LazyChart";
 
 export default function DashboardPage() {
 	const [stats, setStats] = useState<{ employees: number; departments: number; pendingLeaves: number; attendanceToday: number } | null>(null);
-	const [timer, setTimer] = useState<{ active: boolean; startTime: string | null }>({ active: false, startTime: null });
+	const [timer, setTimer] = useState<{ active: boolean; startTime: string | null; isPaused: boolean; elapsedSec: number }>({ 
+		active: false, 
+		startTime: null, 
+		isPaused: false, 
+		elapsedSec: 0 
+	});
 	const [elapsed, setElapsed] = useState<number>(0);
 	const [checking, setChecking] = useState(false);
 	const [timing, setTiming] = useState(false);
@@ -30,7 +35,12 @@ export default function DashboardPage() {
 			]);
 			
 			setStats(stats);
-			setTimer({ active: !!time.active, startTime: time.startTime ?? null });
+			setTimer({ 
+				active: !!time.active, 
+				startTime: time.startTime ?? null, 
+				isPaused: time.isPaused ?? false,
+				elapsedSec: time.elapsedSec ?? 0
+			});
 			setSeries(analytics.series ?? []);
 			setLoading(false);
 			
@@ -51,10 +61,10 @@ export default function DashboardPage() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
-	// update elapsed every second when active
+	// update elapsed every second when active and not paused
 	useEffect(() => {
 		let rafId: number | null = null;
-		if (timer.active && timer.startTime) {
+		if (timer.active && timer.startTime && !timer.isPaused) {
 			const start = new Date(timer.startTime as string).getTime();
 			const loop = () => {
 				const diff = Math.max(0, Math.floor((Date.now() - start) / 1000));
@@ -62,13 +72,16 @@ export default function DashboardPage() {
 				rafId = requestAnimationFrame(loop);
 			};
 			rafId = requestAnimationFrame(loop);
+		} else if (timer.active && timer.isPaused) {
+			// Timer is paused, use the elapsed time from the server
+			setElapsed(timer.elapsedSec);
 		} else {
 			setElapsed(0);
 		}
 		return () => {
 			if (rafId) cancelAnimationFrame(rafId);
 		};
-	}, [timer.active, timer.startTime]);
+	}, [timer.active, timer.startTime, timer.isPaused, timer.elapsedSec]);
 
 	const elapsedHms = useMemo(() => {
 		const h = String(Math.floor(elapsed / 3600)).padStart(2, "0");
@@ -150,45 +163,69 @@ export default function DashboardPage() {
 					</>
 				) : (
 					<>
-						<div className="bg-card p-6 rounded-2xl border premium-hover-lift group anim-scale-in">
+						<div className="relative p-6 rounded-2xl premium-hover-lift group anim-scale-in overflow-hidden
+							glass-light
+							ring-1 ring-offset-white/20 ring-white/20 ring-offset-2 
+							shadow-button hover:shadow-button-hover transition-all duration-300
+							hover:bg-white/15 hover:border-white/40 hover:ring-white/30 hover:ring-offset-4 hover:ring-offset-black/20
+							before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/5 before:to-transparent before:animate-shine before:pointer-events-none before:rounded-2xl
+							after:absolute after:inset-0 after:bg-gradient-to-br after:from-white/3 after:via-transparent after:to-transparent after:pointer-events-none after:rounded-2xl">
 							<div className="flex items-center justify-between mb-4">
-								<div className="p-3 bg-blue-500 rounded-xl shadow-lg group-hover:scale-110 transition-transform" />
-								<span className="text-blue-500 text-sm font-medium">↗ 12%</span>
+								<div className="p-3 bg-blue-600 rounded-xl shadow-lg group-hover:scale-110 transition-transform" />
+								<span className="text-blue-400 text-sm font-medium drop-shadow-md">↗ 12%</span>
 							</div>
-							<h3 className="text-foreground font-semibold text-sm mb-1">Total Employees</h3>
-							<p className="text-3xl font-bold">{stats?.employees ?? 0}</p>
-							<p className="text-muted-foreground text-xs">+2 this month</p>
+							<h3 className="text-white font-semibold text-sm mb-1 drop-shadow-lg">Total Employees</h3>
+							<p className="text-3xl font-bold text-white drop-shadow-lg">{stats?.employees ?? 0}</p>
+							<p className="text-white/80 text-xs drop-shadow-md">+2 this month</p>
 						</div>
 
-						<div className="bg-card p-6 rounded-2xl border premium-hover-lift group anim-scale-in anim-delay-1">
+						<div className="relative p-6 rounded-2xl premium-hover-lift group anim-scale-in anim-delay-1 overflow-hidden
+							glass-light
+							ring-1 ring-offset-white/20 ring-white/20 ring-offset-2 
+							shadow-button hover:shadow-button-hover transition-all duration-300
+							hover:bg-white/15 hover:border-white/40 hover:ring-white/30 hover:ring-offset-4 hover:ring-offset-black/20
+							before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/5 before:to-transparent before:animate-shine before:pointer-events-none before:rounded-2xl
+							after:absolute after:inset-0 after:bg-gradient-to-br after:from-white/3 after:via-transparent after:to-transparent after:pointer-events-none after:rounded-2xl">
 							<div className="flex items-center justify-between mb-4">
-								<div className="p-3 bg-purple-500 rounded-xl shadow-lg group-hover:scale-110 transition-transform" />
-								<span className="text-purple-400 text-sm font-medium">New</span>
+								<div className="p-3 bg-blue-600 rounded-xl shadow-lg group-hover:scale-110 transition-transform" />
+								<span className="text-blue-400 text-sm font-medium drop-shadow-md">New</span>
 							</div>
-							<h3 className="text-foreground font-semibold text-sm mb-1">Departments</h3>
-							<p className="text-3xl font-bold">{stats?.departments ?? 0}</p>
-							<p className="text-muted-foreground text-xs">Setup required</p>
+							<h3 className="text-white font-semibold text-sm mb-1 drop-shadow-lg">Departments</h3>
+							<p className="text-3xl font-bold text-white drop-shadow-lg">{stats?.departments ?? 0}</p>
+							<p className="text-white/80 text-xs drop-shadow-md">Setup required</p>
 						</div>
 
-						<div className="bg-card p-6 rounded-2xl border premium-hover-lift group anim-scale-in anim-delay-2">
+						<div className="relative p-6 rounded-2xl premium-hover-lift group anim-scale-in anim-delay-2 overflow-hidden
+							glass-light
+							ring-1 ring-offset-white/20 ring-white/20 ring-offset-2 
+							shadow-button hover:shadow-button-hover transition-all duration-300
+							hover:bg-white/15 hover:border-white/40 hover:ring-white/30 hover:ring-offset-4 hover:ring-offset-black/20
+							before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/5 before:to-transparent before:animate-shine before:pointer-events-none before:rounded-2xl
+							after:absolute after:inset-0 after:bg-gradient-to-br after:from-white/3 after:via-transparent after:to-transparent after:pointer-events-none after:rounded-2xl">
 							<div className="flex items-center justify-between mb-4">
 								<div className="p-3 bg-amber-500 rounded-xl shadow-lg group-hover:scale-110 transition-transform" />
-								<span className="text-amber-400 text-sm font-medium">Urgent</span>
+								<span className="text-amber-400 text-sm font-medium drop-shadow-md">Urgent</span>
 							</div>
-							<h3 className="text-foreground font-semibold text-sm mb-1">Pending Leaves</h3>
-							<p className="text-3xl font-bold"><Link href="/leaves/manage" className="hover:underline">{stats?.pendingLeaves ?? 0}</Link></p>
-							<p className="text-muted-foreground text-xs">All caught up!</p>
+							<h3 className="text-white font-semibold text-sm mb-1 drop-shadow-lg">Pending Leaves</h3>
+							<p className="text-3xl font-bold text-white drop-shadow-lg"><Link href="/leaves/manage" className="hover:underline text-white">{stats?.pendingLeaves ?? 0}</Link></p>
+							<p className="text-white/80 text-xs drop-shadow-md">All caught up!</p>
 						</div>
 
-						<div className="bg-card p-6 rounded-2xl border premium-hover-lift group anim-scale-in anim-delay-3">
+						<div className="relative p-6 rounded-2xl premium-hover-lift group anim-scale-in anim-delay-3 overflow-hidden
+							glass-light
+							ring-1 ring-offset-white/20 ring-white/20 ring-offset-2 
+							shadow-button hover:shadow-button-hover transition-all duration-300
+							hover:bg-white/15 hover:border-white/40 hover:ring-white/30 hover:ring-offset-4 hover:ring-offset-black/20
+							before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/5 before:to-transparent before:animate-shine before:pointer-events-none before:rounded-2xl
+							after:absolute after:inset-0 after:bg-gradient-to-br after:from-white/3 after:via-transparent after:to-transparent after:pointer-events-none after:rounded-2xl">
 							<div className="flex items-center justify-between mb-4">
 								<div className="p-3 bg-emerald-500 rounded-xl shadow-lg group-hover:scale-110 transition-transform" />
-								<span className="text-emerald-400 text-sm font-medium">100%</span>
+								<span className="text-emerald-400 text-sm font-medium drop-shadow-md">100%</span>
 							</div>
-							<h3 className="text-foreground font-semibold text-sm mb-1">Attendance Today</h3>
-							<p className="text-3xl font-bold mb-2">{stats?.attendanceToday ?? 0}</p>
+							<h3 className="text-white font-semibold text-sm mb-1 drop-shadow-lg">Attendance Today</h3>
+							<p className="text-3xl font-bold mb-2 text-white drop-shadow-lg">{stats?.attendanceToday ?? 0}</p>
 							<div className="flex justify-between items-center">
-								<p className="text-muted-foreground text-xs">Present: {stats?.attendanceToday ?? 0}</p>
+								<p className="text-white/80 text-xs drop-shadow-md">Present: {stats?.attendanceToday ?? 0}</p>
 								<button onClick={handleCheck} className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded-full text-xs font-medium transition-colors">{checking ? "Updating..." : "Check-in"}</button>
 							</div>
 						</div>
@@ -198,16 +235,22 @@ export default function DashboardPage() {
 
 			{/* Work Timer premium widget + Quick Actions */}
 			<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-				<div className="bg-card p-8 rounded-3xl shadow-xl border premium-hover-lift text-foreground anim-slide-up">
+				<div className="relative p-8 rounded-3xl text-foreground anim-slide-up overflow-hidden
+					glass-light
+					ring-1 ring-offset-white/20 ring-white/20 ring-offset-2 
+					shadow-button hover:shadow-button-hover transition-all duration-300
+					hover:bg-white/15 hover:border-white/40 hover:ring-white/30 hover:ring-offset-4 hover:ring-offset-black/20
+					before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/5 before:to-transparent before:animate-shine before:pointer-events-none before:rounded-3xl
+					after:absolute after:inset-0 after:bg-gradient-to-br after:from-white/3 after:via-transparent after:to-transparent after:pointer-events-none after:rounded-3xl">
 					<div className="text-center">
-						<h3 className="font-semibold mb-2">Work Timer</h3>
-						<p className="text-muted-foreground text-sm mb-6">Track your productive hours</p>
+						<h3 className="font-semibold mb-2 text-white drop-shadow-lg">Work Timer</h3>
+						<p className="text-white/80 text-sm mb-6 drop-shadow-md">Track your productive hours</p>
 						<div className="relative w-56 h-56 mx-auto mb-8 anim-scale-in">
 							<svg className="w-56 h-56 -rotate-90" aria-hidden>
 								<defs>
 									<linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-										<stop offset="0%" stopColor="#3b82f6" />
-										<stop offset="100%" stopColor="#8b5cf6" />
+										<stop offset="0%" stopColor="#2563eb" />
+										<stop offset="100%" stopColor="#2563eb" />
 									</linearGradient>
 									<filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
 										<feGaussianBlur stdDeviation="4" result="coloredBlur" />
@@ -230,30 +273,54 @@ export default function DashboardPage() {
 							</div>
 							<div className="absolute inset-0 flex items-center justify-center">
 								<div className="text-center">
-									<div className="text-5xl md:text-6xl font-bold font-mono tracking-widest text-slate-900 dark:text-white">{elapsedHms}</div>
-									<div className="text-slate-500 dark:text-slate-300 text-sm mt-1">{timer.active ? "Working" : "Ready"}</div>
+									<div className="text-5xl md:text-6xl font-bold font-mono tracking-widest text-white drop-shadow-lg">{elapsedHms}</div>
+									<div className="text-white/80 text-sm mt-1 drop-shadow-md">
+										{timer.active ? (timer.isPaused ? "Paused" : "Working") : "Ready"}
+									</div>
 								</div>
 							</div>
 						</div>
 						<div className="flex justify-center gap-4">
-							<button onClick={handleTimer} className={`px-8 py-3 rounded-full font-semibold transition-all duration-200 inline-flex items-center gap-2 ${timer.active ? "bg-red-500 hover:bg-red-600 text-white shadow-lg" : "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg"}`}>{timer.active ? (<><Pause className="h-4 w-4" /> Stop</>) : (<><Play className="h-4 w-4" /> Start</>)}</button>
-							<button className="px-6 py-3 bg-muted hover:bg-muted/80 text-foreground rounded-full font-semibold border border-border inline-flex items-center gap-2"><Coffee className="h-4 w-4" /> Break</button>
+							<button onClick={handleTimer} className={`px-8 py-3 rounded-full font-semibold transition-all duration-200 inline-flex items-center gap-2 ${timer.active ? "bg-red-500 hover:bg-red-600 text-white shadow-lg" : "bg-blue-600 hover:bg-blue-700 text-white shadow-lg"}`}>{timer.active ? (<><Pause className="h-4 w-4" /> Stop</>) : (<><Play className="h-4 w-4" /> Start</>)}</button>
+							<button 
+								onClick={handleBreak} 
+								disabled={!timer.active || timing}
+								className={`px-6 py-3 rounded-full font-semibold border border-border inline-flex items-center gap-2 transition-all duration-200 ${
+									!timer.active || timing 
+										? "bg-muted/50 text-muted-foreground cursor-not-allowed" 
+										: timer.isPaused
+											? "bg-green-500 hover:bg-green-600 text-white shadow-lg"
+											: "bg-orange-500 hover:bg-orange-600 text-white shadow-lg"
+								}`}
+							>
+								{timer.isPaused ? (
+									<><Play className="h-4 w-4" /> Resume</>
+								) : (
+									<><Coffee className="h-4 w-4" /> Break</>
+								)}
+							</button>
 						</div>
 					</div>
 				</div>
 
-				<div className="bg-card p-6 rounded-2xl border premium-shadow anim-slide-up anim-delay-1">
-					<h3 className="text-foreground font-semibold mb-2">Quick Actions</h3>
+				<div className="relative p-6 rounded-2xl premium-shadow anim-slide-up anim-delay-1 overflow-hidden
+					glass-light
+					ring-1 ring-offset-white/20 ring-white/20 ring-offset-2 
+					shadow-button hover:shadow-button-hover transition-all duration-300
+					hover:bg-white/15 hover:border-white/40 hover:ring-white/30 hover:ring-offset-4 hover:ring-offset-black/20
+					before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/5 before:to-transparent before:animate-shine before:pointer-events-none before:rounded-2xl
+					after:absolute after:inset-0 after:bg-gradient-to-br after:from-white/3 after:via-transparent after:to-transparent after:pointer-events-none after:rounded-2xl">
+					<h3 className="text-white font-semibold mb-2 drop-shadow-lg">Quick Actions</h3>
 					<div className="grid grid-cols-2 gap-4">
-						<Link href="/employees" className="p-4 bg-card border rounded-xl transition-colors premium-hover-lift block anim-scale-in">
-							<div className="w-10 h-10 bg-blue-500 rounded-lg mb-3" />
-							<div className="font-semibold text-foreground">Add Employee</div>
-							<div className="text-muted-foreground text-sm">Onboard new team member</div>
+						<Link href="/employees" className="p-4 bg-white/5 border border-white/20 rounded-xl transition-colors premium-hover-lift block anim-scale-in backdrop-blur-sm hover:bg-white/10">
+							<div className="w-10 h-10 bg-blue-600 rounded-lg mb-3" />
+							<div className="font-semibold text-white drop-shadow-md">Add Employee</div>
+							<div className="text-white/80 text-sm drop-shadow-sm">Onboard new team member</div>
 						</Link>
-						<Link href="/reports" className="p-4 bg-card border rounded-xl transition-colors premium-hover-lift block anim-scale-in anim-delay-1">
-							<div className="w-10 h-10 bg-purple-500 rounded-lg mb-3" />
-							<div className="font-semibold text-foreground">Generate Report</div>
-							<div className="text-muted-foreground text-sm">Export attendance data</div>
+						<Link href="/reports" className="p-4 bg-white/5 border border-white/20 rounded-xl transition-colors premium-hover-lift block anim-scale-in anim-delay-1 backdrop-blur-sm hover:bg-white/10">
+							<div className="w-10 h-10 bg-blue-600 rounded-lg mb-3" />
+							<div className="font-semibold text-white drop-shadow-md">Generate Report</div>
+							<div className="text-white/80 text-sm drop-shadow-sm">Export attendance data</div>
 						</Link>
 					</div>
 
@@ -262,21 +329,21 @@ export default function DashboardPage() {
 						<div className="flex items-center justify-between mb-3">
 							<button
 								onClick={() => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1, 1))}
-								className="p-2 rounded-md border bg-card hover:bg-muted transition-colors"
+								className="p-2 rounded-md border border-white/20 bg-white/5 hover:bg-white/10 transition-colors backdrop-blur-sm"
 								aria-label="Previous month"
 							>
-								<ChevronLeft className="h-4 w-4" />
+								<ChevronLeft className="h-4 w-4 text-white" />
 							</button>
-							<div className="text-sm font-medium text-foreground">{monthLabel}</div>
+							<div className="text-sm font-medium text-white drop-shadow-md">{monthLabel}</div>
 							<button
 								onClick={() => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 1))}
-								className="p-2 rounded-md border bg-card hover:bg-muted transition-colors"
+								className="p-2 rounded-md border border-white/20 bg-white/5 hover:bg-white/10 transition-colors backdrop-blur-sm"
 								aria-label="Next month"
 							>
-								<ChevronRight className="h-4 w-4" />
+								<ChevronRight className="h-4 w-4 text-white" />
 							</button>
 						</div>
-						<div className="grid grid-cols-7 gap-2 text-center text-xs text-muted-foreground">
+						<div className="grid grid-cols-7 gap-2 text-center text-xs text-white/80 drop-shadow-sm">
 							<div>Sun</div>
 							<div>Mon</div>
 							<div>Tue</div>
@@ -305,7 +372,7 @@ export default function DashboardPage() {
 								return (
 									<div
 										key={d}
-										className={`h-10 flex items-center justify-center rounded-md border text-sm ${isToday ? "bg-blue-600 text-white border-blue-600" : isHoliday ? "bg-emerald-600/20 border-emerald-600/40" : isLeave ? "bg-amber-500/20 border-amber-500/40" : "bg-card border-border"} text-foreground`}
+										className={`h-10 flex items-center justify-center rounded-md border text-sm ${isToday ? "bg-blue-600 text-white border-blue-600" : isHoliday ? "bg-emerald-600/20 border-emerald-600/40" : isLeave ? "bg-amber-500/20 border-amber-500/40" : "bg-white/5 border-white/20"} text-white drop-shadow-sm`}
 									>
 										{d}
 									</div>
@@ -317,13 +384,19 @@ export default function DashboardPage() {
 			</div>
 
 			{/* Activity Area Chart (interactive) */}
-			<div className="bg-card p-6 rounded-2xl border premium-shadow">
+			<div className="relative p-6 rounded-2xl premium-shadow overflow-hidden
+				glass-light
+				ring-1 ring-offset-white/20 ring-white/20 ring-offset-2 
+				shadow-button hover:shadow-button-hover transition-all duration-300
+				hover:bg-white/15 hover:border-white/40 hover:ring-white/30 hover:ring-offset-4 hover:ring-offset-black/20
+				before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/5 before:to-transparent before:animate-shine before:pointer-events-none before:rounded-2xl
+				after:absolute after:inset-0 after:bg-gradient-to-br after:from-white/3 after:via-transparent after:to-transparent after:pointer-events-none after:rounded-2xl">
 				<div className="flex items-center justify-between mb-3">
-					<h3 className="text-foreground font-semibold">Weekly Activity</h3>
+					<h3 className="text-white font-semibold drop-shadow-lg">Weekly Activity</h3>
 					<select
 						value={timeRange}
 						onChange={(e) => setTimeRange(e.target.value as any)}
-						className="rounded-lg border bg-card text-foreground px-3 py-1 text-sm"
+						className="rounded-lg border border-white/30 bg-white/10 text-white px-3 py-1 text-sm backdrop-blur-sm"
 					>
 						<option value="90d">Last 3 months</option>
 						<option value="30d">Last 30 days</option>
@@ -345,7 +418,17 @@ export default function DashboardPage() {
 			}
 			await res.json();
 			toast.success("Attendance updated");
-			await loadAll();
+			
+			// Only update attendance stats, not the entire dashboard
+			try {
+				const statsRes = await fetch("/api/dashboard/stats", { credentials: "include", cache: "no-store" });
+				if (statsRes.ok) {
+					const statsData = await statsRes.json();
+					setStats(statsData);
+				}
+			} catch (error) {
+				console.error("Failed to update stats:", error);
+			}
 		} catch (e: any) {
 			toast.error(e?.message || "Check-in failed");
 		} finally {
@@ -357,19 +440,83 @@ export default function DashboardPage() {
 		setTiming(true);
 		try {
 			if (!timer.active) {
-				const res = await fetch("/api/time", { method: "POST", credentials: "include", cache: "no-store" });
-				if (!res.ok) throw new Error("Failed to start timer");
-				const data = await res.json();
-				setTimer({ active: true, startTime: data.startTime });
+				// Start timer - update UI immediately for better responsiveness
+				setTimer({ active: true, startTime: new Date().toISOString(), isPaused: false, elapsedSec: 0 });
 				toast.success("Timer started");
+				
+				// Make API call in background
+				const res = await fetch("/api/time", { method: "POST", credentials: "include", cache: "no-store" });
+				if (!res.ok) {
+					// Revert UI state if API call failed
+					setTimer({ active: false, startTime: null, isPaused: false, elapsedSec: 0 });
+					throw new Error("Failed to start timer");
+				}
+				const data = await res.json();
+				// Update with actual server time
+				setTimer({ active: true, startTime: data.startTime, isPaused: false, elapsedSec: 0 });
 			} else {
-				const res = await fetch("/api/time", { method: "PATCH", credentials: "include", cache: "no-store" });
+				// Stop timer completely
+				const res = await fetch("/api/time", { 
+					method: "PATCH", 
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ action: "stop" }),
+					credentials: "include", 
+					cache: "no-store" 
+				});
 				if (!res.ok) throw new Error("Failed to stop timer");
-				setTimer({ active: false, startTime: null });
-				toast.success("Timer stopped");
+				const data = await res.json();
+				setTimer({ active: false, startTime: null, isPaused: false, elapsedSec: 0 });
+				toast.success(`Timer stopped! Worked for ${Math.floor(data.durationSec / 60)} minutes`);
 			}
 		} catch (e: any) {
 			toast.error(e?.message || "Timer error");
+		} finally {
+			setTiming(false);
+		}
+	}
+
+	async function handleBreak() {
+		setTiming(true);
+		try {
+			if (timer.isPaused) {
+				// Resume timer - update UI immediately
+				setTimer({ ...timer, isPaused: false });
+				toast.success("Timer resumed");
+				
+				// Make API call in background
+				const res = await fetch("/api/time", { 
+					method: "PATCH", 
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ action: "resume" }),
+					credentials: "include", 
+					cache: "no-store" 
+				});
+				if (!res.ok) {
+					// Revert UI state if API call failed
+					setTimer({ ...timer, isPaused: true });
+					throw new Error("Failed to resume timer");
+				}
+			} else {
+				// Pause timer - update UI immediately
+				setTimer({ ...timer, isPaused: true });
+				toast.success("Timer paused - taking a break");
+				
+				// Make API call in background
+				const res = await fetch("/api/time", { 
+					method: "PATCH", 
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ action: "pause" }),
+					credentials: "include", 
+					cache: "no-store" 
+				});
+				if (!res.ok) {
+					// Revert UI state if API call failed
+					setTimer({ ...timer, isPaused: false });
+					throw new Error("Failed to pause timer");
+				}
+			}
+		} catch (e: any) {
+			toast.error(e?.message || "Break error");
 		} finally {
 			setTiming(false);
 		}

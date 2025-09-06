@@ -1,16 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { getCurrentUserWithEmployee } from "@/lib/api-auth";
 import { hashPassword } from "@/lib/auth";
-
-const prisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL,
-    },
-  },
-});
 
 const createSchema = z.object({
 	email: z.string().email(),

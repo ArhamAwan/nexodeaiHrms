@@ -61,40 +61,56 @@ export default function LoginPage() {
 	}
 
 	return (
-		<div className="min-h-svh flex items-center justify-center p-4 bg-gradient-to-br from-slate-100 to-slate-200">
-			<div className="w-full max-w-md premium-glassmorphism rounded-2xl p-8">
-				<div className="mb-6 text-center">
-					<h1 className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">Welcome to HRMS</h1>
-					<p className="text-slate-500 text-sm">Sign in to continue</p>
+		<div className="min-h-svh flex items-center justify-center p-4 relative">
+			{/* Glass Effect Login Card */}
+			<div className="w-full max-w-md relative p-8 rounded-2xl premium-shadow overflow-hidden
+				glass-light
+				ring-1 ring-offset-white/20 ring-white/20 ring-offset-2
+				shadow-button hover:shadow-button-hover transition-all duration-300
+				hover:bg-white/15 hover:border-white/40 hover:ring-white/30 hover:ring-offset-4 hover:ring-offset-black/20
+				before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/5 before:to-transparent before:animate-shine before:pointer-events-none before:rounded-2xl
+				after:absolute after:inset-0 after:bg-gradient-to-br after:from-white/3 after:via-transparent after:to-transparent after:pointer-events-none after:rounded-2xl">
+				
+				<div className="relative z-10">
+					<div className="mb-6 text-center">
+						<h1 className="text-2xl font-bold text-white drop-shadow-lg">Welcome to HRMS</h1>
+						<p className="text-white/70 text-sm drop-shadow-md">Sign in to continue</p>
+					</div>
+					<form onSubmit={onSubmit} className="space-y-4">
+						<div className="space-y-2">
+							<Label htmlFor="email" className="text-white drop-shadow-sm">Email</Label>
+							<Input 
+								id="email" 
+								type="email" 
+								value={email} 
+								onChange={(e) => setEmail(e.target.value)} 
+								required 
+								className="w-full px-4 py-3 rounded-xl bg-white/10 backdrop-blur-sm text-white border border-white/20 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 placeholder:text-white/50"
+								placeholder="Enter your email"
+							/>
+						</div>
+						<div className="space-y-2">
+							<Label htmlFor="password" className="text-white drop-shadow-sm">Password</Label>
+							<Input 
+								id="password" 
+								type="password" 
+								value={password} 
+								onChange={(e) => setPassword(e.target.value)} 
+								required 
+								className="w-full px-4 py-3 rounded-xl bg-white/10 backdrop-blur-sm text-white border border-white/20 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 placeholder:text-white/50"
+								placeholder="Enter your password"
+							/>
+						</div>
+						{error && <p className="text-sm text-red-300 drop-shadow-sm">{error}</p>}
+						<Button 
+							type="submit" 
+							className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/30 text-white px-6 py-3 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed" 
+							disabled={loading}
+						>
+							{loading ? "Signing in..." : "Sign in"}
+						</Button>
+					</form>
 				</div>
-				<form onSubmit={onSubmit} className="space-y-4">
-					<div className="space-y-2">
-						<Label htmlFor="email" className="text-slate-700">Email</Label>
-						<Input 
-							id="email" 
-							type="email" 
-							value={email} 
-							onChange={(e) => setEmail(e.target.value)} 
-							required 
-							className="text-slate-900 placeholder:text-slate-500"
-						/>
-					</div>
-					<div className="space-y-2">
-						<Label htmlFor="password" className="text-slate-700">Password</Label>
-						<Input 
-							id="password" 
-							type="password" 
-							value={password} 
-							onChange={(e) => setPassword(e.target.value)} 
-							required 
-							className="text-slate-900 placeholder:text-slate-500"
-						/>
-					</div>
-					{error && <p className="text-sm text-red-600">{error}</p>}
-					<Button type="submit" className="w-full" disabled={loading}>
-						{loading ? "Signing in..." : "Sign in"}
-					</Button>
-				</form>
 			</div>
 		</div>
 	);

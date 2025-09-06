@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { notifyManagersOfEmployee, notifyUser } from "@/lib/notify";
 import { getCurrentUserWithEmployee } from "@/lib/api-auth";
-
-const prisma = new PrismaClient();
 
 const schema = z.object({
 	type: z.enum(["SICK", "CASUAL", "ANNUAL", "UNPAID", "COMP_OFF"]),
@@ -13,10 +11,32 @@ const schema = z.object({
 });
 
 export async function GET(_req: NextRequest) {
-	const user = await getCurrentUserWithEmployee();
-	if (!user?.employee) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-	const leaves = await prisma.leave.findMany({ where: { employeeId: user.employee.id }, orderBy: { createdAt: "desc" } });
-	return NextResponse.json({ leaves });
+	try {
+		const user = await getCurrentUserWithEmployee();
+		if (!user?.employee) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+		
+		const leaves = await prisma.leave.findMany({ 
+			where: { employeeId: user.employee.id }, 
+			orderBy: { createdAt: "desc" },
+			select: {
+				id: true,
+				type: true,
+				fromDate: true,
+				toDate: true,
+				status: true,
+				createdAt: true,
+				updatedAt: true
+			}
+		});
+		
+		const response = NextResponse.json({ leaves });
+		// Cache leaves for 2 minutes since they can change
+		response.headers.set('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=240');
+		return response;
+	} catch (error) {
+		console.error("/api/leaves GET error", error);
+		return NextResponse.json({ error: "Failed to load leaves" }, { status: 500 });
+	}
 }
 
 export async function POST(req: NextRequest) {

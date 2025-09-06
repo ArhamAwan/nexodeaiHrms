@@ -1,14 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 import { getCurrentUserWithEmployee } from "@/lib/api-auth";
-
-const prisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL,
-    },
-  },
-});
 
 // In-memory store for online users (in production, use Redis)
 const onlineUsers = new Map<string, { lastSeen: number; userId: string }>();
@@ -32,7 +24,10 @@ export async function GET() {
     // Get all online user IDs
     const onlineUserIds = Array.from(onlineUsers.values()).map(data => data.userId);
     
-    return NextResponse.json({ onlineUsers: onlineUserIds });
+    const response = NextResponse.json({ onlineUsers: onlineUserIds });
+    // Cache for 15 seconds since online status changes frequently
+    response.headers.set('Cache-Control', 'public, s-maxage=15, stale-while-revalidate=30');
+    return response;
   } catch (error) {
     console.error("/api/users/online GET error", error);
     return NextResponse.json({ error: "Failed to get online users" }, { status: 500 });

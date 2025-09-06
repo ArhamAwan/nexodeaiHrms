@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   const actives = await prisma.timeLog.findMany({
@@ -17,7 +15,10 @@ export async function GET() {
     startTime: a.startTime,
     elapsedSec: Math.max(0, Math.floor((now - a.startTime.getTime()) / 1000)),
   }));
-  return NextResponse.json({ active: data });
+  const response = NextResponse.json({ active: data });
+  // Cache for 30 seconds since active timers change frequently
+  response.headers.set('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
+  return response;
 }
 
 

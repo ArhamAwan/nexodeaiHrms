@@ -1,6 +1,4 @@
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 export async function notifyUser(userId: string, message: string) {
 	return prisma.notification.create({ data: { userId, message } });

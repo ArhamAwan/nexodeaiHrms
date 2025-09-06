@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
 import { getCurrentUserWithEmployee } from "@/lib/api-auth";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 export async function POST(_req: NextRequest) {
 	const user = await getCurrentUserWithEmployee();
