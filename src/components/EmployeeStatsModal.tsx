@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { toast } from "sonner";
 
 interface EmployeeStatsModalProps {
   isOpen: boolean;
@@ -73,6 +74,16 @@ export default function EmployeeStatsModal({ isOpen, onClose, employeeId, employ
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'attendance' | 'leaves' | 'timeLogs'>('overview');
 
+  // Lock body scroll while modal is open
+  useEffect(() => {
+    if (!isOpen) return;
+    const original = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = original;
+    };
+  }, [isOpen]);
+
   useEffect(() => {
     if (isOpen && employeeId) {
       loadStats();
@@ -92,12 +103,11 @@ export default function EmployeeStatsModal({ isOpen, onClose, employeeId, employ
       } else {
         const errorData = await res.json().catch(() => ({}));
         console.error("Failed to load employee stats:", errorData.error || `HTTP ${res.status}`);
-        // Show user-friendly error message
-        alert(`Failed to load employee statistics: ${errorData.error || 'Please try again later'}`);
+        toast.error(errorData.error || "Failed to load employee statistics");
       }
     } catch (error) {
       console.error("Error loading employee stats:", error);
-      alert("Network error while loading employee statistics. Please check your connection.");
+      toast.error("Network error while loading employee statistics");
     } finally {
       setLoading(false);
     }
@@ -131,7 +141,7 @@ export default function EmployeeStatsModal({ isOpen, onClose, employeeId, employ
       onClick={handleBackdropClick}
     >
       <div 
-        className="bg-card text-foreground w-full max-w-4xl max-h-[90vh] rounded-2xl border shadow-2xl overflow-hidden" 
+        className="bg-card text-foreground w-full max-w-4xl max-h-[90vh] rounded-2xl border shadow-2xl overflow-hidden flex flex-col min-h-0" 
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-6 border-b">
@@ -153,7 +163,7 @@ export default function EmployeeStatsModal({ isOpen, onClose, employeeId, employ
             <p className="mt-2 text-muted-foreground">Loading stats...</p>
           </div>
         ) : stats ? (
-          <div className="flex flex-col h-full">
+          <div className="flex flex-col h-full min-h-0">
             {/* Tabs */}
             <div className="flex border-b">
               {[
@@ -177,7 +187,7 @@ export default function EmployeeStatsModal({ isOpen, onClose, employeeId, employ
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-6 min-h-0">
               {activeTab === 'overview' && (
                 <div className="space-y-6">
                   {/* Employee Info */}

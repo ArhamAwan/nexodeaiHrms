@@ -6,6 +6,7 @@ import { Play, Pause, Coffee, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { deduplicatedFetch } from "@/lib/cache";
 import LazyChart from "@/components/LazyChart";
+import TimerReportModal from "@/components/TimerReportModal";
 
 export default function DashboardPage() {
 	const [stats, setStats] = useState<{ employees: number; departments: number; pendingLeaves: number; attendanceToday: number } | null>(null);
@@ -18,6 +19,8 @@ export default function DashboardPage() {
 	const [elapsed, setElapsed] = useState<number>(0);
 	const [checking, setChecking] = useState(false);
 	const [timing, setTiming] = useState(false);
+	const [showReportModal, setShowReportModal] = useState(false);
+	const [pendingStopData, setPendingStopData] = useState<{ durationSec: number } | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [series, setSeries] = useState<any[]>([]);
 	const [timeRange, setTimeRange] = useState<"90d" | "30d" | "7d">("90d");
@@ -405,6 +408,17 @@ export default function DashboardPage() {
 				</div>
 				<LazyChart data={filteredSeries} timeRange={timeRange} />
 			</div>
+
+			{/* Timer Report Modal */}
+			<TimerReportModal
+				isOpen={showReportModal}
+				onClose={() => {
+					// Don't allow closing without submitting report
+					toast.warning("Please submit a report to stop the timer");
+				}}
+				onSubmit={handleReportSubmit}
+				workDuration={pendingStopData?.durationSec || 0}
+			/>
 		</div>
 	);
 
@@ -455,7 +469,7 @@ export default function DashboardPage() {
 				// Update with actual server time
 				setTimer({ active: true, startTime: data.startTime, isPaused: false, elapsedSec: 0 });
 			} else {
-				// Stop timer completely
+				// Stop timer - but first require a report
 				const res = await fetch("/api/time", { 
 					method: "PATCH", 
 					headers: { "Content-Type": "application/json" },
@@ -465,13 +479,42 @@ export default function DashboardPage() {
 				});
 				if (!res.ok) throw new Error("Failed to stop timer");
 				const data = await res.json();
-				setTimer({ active: false, startTime: null, isPaused: false, elapsedSec: 0 });
-				toast.success(`Timer stopped! Worked for ${Math.floor(data.durationSec / 60)} minutes`);
+				
+				// Show report modal instead of immediately stopping
+				setPendingStopData({ durationSec: data.durationSec });
+				setShowReportModal(true);
 			}
 		} catch (e: any) {
 			toast.error(e?.message || "Timer error");
 		} finally {
 			setTiming(false);
+		}
+	}
+
+	async function handleReportSubmit(report: { type: string; content: string }) {
+		try {
+			// Submit the report
+			const res = await fetch("/api/reports", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				credentials: "include",
+				body: JSON.stringify(report)
+			});
+			
+			if (!res.ok) {
+				throw new Error("Failed to submit report");
+			}
+			
+			// Now actually stop the timer UI
+			setTimer({ active: false, startTime: null, isPaused: false, elapsedSec: 0 });
+			setShowReportModal(false);
+			setPendingStopData(null);
+			
+			const minutes = Math.floor((pendingStopData?.durationSec || 0) / 60);
+			toast.success(`Timer stopped! Worked for ${minutes} minutes and report submitted`);
+		} catch (error) {
+			console.error("Error submitting report:", error);
+			throw error; // Re-throw so modal can handle it
 		}
 	}
 

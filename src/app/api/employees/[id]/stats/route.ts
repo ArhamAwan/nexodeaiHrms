@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserWithEmployee } from "@/lib/api-auth";
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+// In Next 15, params may be async; we await it to avoid runtime warning
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const employeeId = params.id;
+    const { id: employeeId } = await params;
     
     // Get employee details
     const employee = await prisma.employee.findUnique({
@@ -34,20 +35,16 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     // Execute all queries in parallel for better performance
     const [
-      attendanceStats,
-      recentAttendance,
-      leaveStats,
-      recentLeaves,
-      timeLogStats,
-      recentTimeLogs
+      attendancePresentCount,
+      attendanceRecentRaw,
+      leavesAll,
+      leavesRecent,
+      timeLogAgg,
+      recentTimeLogsRaw
     ] = await Promise.all([
-      prisma.attendance.groupBy({
-        by: ['employeeId'],
-        where: { employeeId },
-        _count: { id: true },
-        _sum: { hoursWorked: true }
-      }).catch(() => []),
-      
+      // Count days present
+      prisma.attendance.count({ where: { employeeId, status: 'PRESENT' } }).catch(() => 0),
+      // Recent attendance; compute hours on the fly
       prisma.attendance.findMany({
         where: { employeeId },
         orderBy: { day: 'desc' },
@@ -56,40 +53,34 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
           day: true,
           checkIn: true,
           checkOut: true,
-          hoursWorked: true,
           status: true
         }
-      }).catch(() => []),
-      
-      prisma.leave.groupBy({
-        by: ['employeeId'],
+      }).catch(() => [] as any[]),
+      // All leaves to compute total days
+      prisma.leave.findMany({
         where: { employeeId },
-        _count: { id: true },
-        _sum: { days: true }
-      }).catch(() => []),
-      
+        select: { fromDate: true, toDate: true }
+      }).catch(() => [] as any[]),
+      // Recent leaves for UI
       prisma.leave.findMany({
         where: { employeeId },
         orderBy: { createdAt: 'desc' },
         take: 5,
         select: {
           type: true,
-          startDate: true,
-          endDate: true,
-          days: true,
+          fromDate: true,
+          toDate: true,
           status: true,
-          reason: true,
           createdAt: true
         }
-      }).catch(() => []),
-      
-      prisma.timeLog.groupBy({
-        by: ['employeeId'],
-        where: { employeeId },
-        _count: { id: true },
-        _sum: { duration: true }
-      }).catch(() => []),
-      
+      }).catch(() => [] as any[]),
+      // Aggregate time logs
+      prisma.timeLog.aggregate({
+        where: { employeeId, durationSec: { not: null } },
+        _sum: { durationSec: true },
+        _count: { _all: true }
+      }).catch(() => ({ _sum: { durationSec: 0 }, _count: { _all: 0 } })),
+      // Recent time logs
       prisma.timeLog.findMany({
         where: { employeeId },
         orderBy: { startTime: 'desc' },
@@ -97,28 +88,58 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         select: {
           startTime: true,
           endTime: true,
-          duration: true,
-          description: true,
-          project: true
+          durationSec: true
         }
-      }).catch(() => [])
+      }).catch(() => [] as any[])
     ]);
+
+    // Compute hours for recent attendance
+    const recentAttendance = attendanceRecentRaw.map((r) => {
+      const hoursWorked = r.checkIn && r.checkOut ? Math.max(0, (r.checkOut.getTime() - r.checkIn.getTime()) / 3600000) : null;
+      return { ...r, hoursWorked };
+    });
+
+    // Compute total leave days
+    const totalLeaveDays = leavesAll.reduce((acc, l) => {
+      const start = new Date(l.fromDate);
+      const end = new Date(l.toDate);
+      const diff = Math.max(0, Math.ceil((end.getTime() - start.getTime()) / 86400000) + 1);
+      return acc + diff;
+    }, 0);
+
+    const recentLeaves = leavesRecent.map((l) => ({
+      type: l.type,
+      startDate: l.fromDate,
+      endDate: l.toDate,
+      days: Math.max(0, Math.ceil((new Date(l.toDate).getTime() - new Date(l.fromDate).getTime()) / 86400000) + 1),
+      status: l.status,
+      reason: null,
+      createdAt: l.createdAt
+    }));
+
+    const recentTimeLogs = recentTimeLogsRaw.map((t) => ({
+      startTime: t.startTime,
+      endTime: t.endTime,
+      duration: t.durationSec ?? null,
+      description: null,
+      project: null
+    }));
 
     const stats = {
       employee,
       attendance: {
-        totalDays: attendanceStats[0]?._count?.id || 0,
-        totalHours: attendanceStats[0]?._sum?.hoursWorked || 0,
+        totalDays: attendancePresentCount || 0,
+        totalHours: (timeLogAgg._sum.durationSec || 0) / 3600,
         recent: recentAttendance
       },
       leaves: {
-        totalLeaves: leaveStats[0]?._count?.id || 0,
-        totalDays: leaveStats[0]?._sum?.days || 0,
+        totalLeaves: leavesAll.length,
+        totalDays: totalLeaveDays,
         recent: recentLeaves
       },
       timeLogs: {
-        totalLogs: timeLogStats[0]?._count?.id || 0,
-        totalDuration: timeLogStats[0]?._sum?.duration || 0,
+        totalLogs: timeLogAgg._count._all || 0,
+        totalDuration: timeLogAgg._sum.durationSec || 0,
         recent: recentTimeLogs
       }
     };
